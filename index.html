@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="pageTitle">منصة FIKRA - لوحة الطالب</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome & Chart.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="script-branch.js">
+    </script>
+</head>
+<body class="bg-customBg text-customText h-screen flex overflow-hidden font-sans antialiased transition-colors duration-300">
+
+    <div id="toast" class="fixed top-4 start-1/2 -translate-x-1/2 bg-customPrimary text-white px-6 py-3 rounded-full shadow-lg opacity-0 pointer-events-none transition-all duration-300 z-[100] flex items-center gap-3">
+        <i class="fas fa-check-circle" id="toast-icon"></i>
+        <span id="toast-message" class="font-semibold text-sm"></span>
+    </div>
+
+    <!-- Mobile overlay -->
+    <div id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-64 flex-shrink-0 bg-customSidebar border-e border-slate-200/20 shadow-lg flex flex-col h-full z-40 relative transition-all duration-300 mobile-closed">
+        <div class="h-16 flex items-center px-4 border-b border-slate-200/20 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors" onclick="goToDashboard()">
+            <div class="flex items-center gap-3 text-customPrimary w-full justify-center lg:justify-start">
+                <i class="fas fa-lightbulb text-2xl"></i>
+                <span class="font-bold text-xl tracking-wide uppercase sidebar-text logo-text" data-i18n="platformName">FIKRA</span>
+            </div>
+        </div>
+
+        <!-- Motivation Box - clickable -->
+        <div id="motivation-box" class="motivation-box px-3 py-3.5 mx-2 mt-2 mb-1 bg-customPrimary/15 rounded-xl border border-customPrimary/30 shadow-sm" onclick="cycleMotivation()">
+            <p id="motivation-text" class="text-sm font-bold text-customPrimary text-center leading-relaxed">💡 كل نجاح بيبدأ من فكرة... استمر!</p>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-3 flex flex-col gap-1.5 px-2 text-customText">
+            <button onclick="switchView('dashboard-view', this)" id="nav-dashboard" class="nav-item active flex items-center gap-3 px-4 py-3 w-full text-start rounded-xl font-medium">
+                <i class="fas fa-home w-5 text-center"></i> <span class="sidebar-text" data-i18n="dashboard">لوحة التحكم</span>
+            </button>
+            <button onclick="switchView('my-courses-view', this)" class="nav-item flex items-center gap-3 px-4 py-3 w-full text-start rounded-xl font-medium">
+                <i class="fas fa-book-open w-5 text-center"></i> <span class="sidebar-text" data-i18n="myCourses">كورساتي</span>
+            </button>
+            <button onclick="switchView('suggested-courses-view', this)" class="nav-item flex items-center gap-3 px-4 py-3 w-full text-start rounded-xl font-medium">
+                <i class="fas fa-star w-5 text-center"></i> <span class="sidebar-text" data-i18n="suggested">كورسات مقترحة</span>
+            </button>
+            <div class="my-2 border-t border-slate-200/20 mx-2"></div>
+            <button onclick="switchView('library-view', this)" class="nav-item flex items-center gap-3 px-4 py-3 w-full text-start rounded-xl font-medium">
+                <i class="fas fa-file-pdf w-5 text-center"></i> <span class="sidebar-text" data-i18n="pdfLibrary">مكتبة الكتب</span>
+            </button>
+            <button onclick="switchView('records-view', this)" class="nav-item flex items-center gap-3 px-4 py-3 w-full text-start rounded-xl font-medium">
+                <i class="fas fa-folder-open w-5 text-center"></i> <span class="sidebar-text" data-i18n="records">السجل</span>
+            </button>
+            <button onclick="switchView('stats-view', this)" class="nav-item flex items-center gap-3 px-4 py-3 w-full text-start rounded-xl font-medium">
+                <i class="fas fa-chart-pie w-5 text-center"></i> <span class="sidebar-text" data-i18n="stats">احصائياتي</span>
+            </button>
+            <button onclick="switchView('community-view', this)" class="nav-item flex items-center gap-3 px-4 py-3 w-full text-start rounded-xl font-medium">
+                <i class="fas fa-users w-5 text-center"></i> <span class="sidebar-text" data-i18n="community">مجتمع فكرة</span>
+            </button>
+            
+            <div class="mt-auto pt-3 border-t border-slate-200/20 mx-2 space-y-1">
+                <button onclick="openCustomizer()" class="flex items-center gap-3 px-4 py-2.5 w-full text-start rounded-lg transition-colors font-bold text-amber-500 hover:bg-amber-500/10">
+                    <i class="fas fa-paint-brush w-5 text-center"></i> <span class="sidebar-text" data-i18n="themeCustomizer">تخصيص الواجهة</span>
+                </button>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 min-h-0 relative overflow-hidden">
+        <header class="h-16 flex items-center justify-between px-4 lg:px-6 bg-customSidebar border-b border-slate-200/20 z-10 shadow-sm shrink-0">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleMobileSidebar()" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-customText transition-colors">
+                    <i class="fas fa-bars text-lg"></i>
+                </button>
+                <div class="flex items-center text-customText font-bold text-base sm:text-lg uppercase tracking-wider cursor-pointer hover:text-customPrimary transition-colors" onclick="goToDashboard()">
+                    <span data-i18n="platformNameHeader">FIKRA PLATFORM</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 sm:gap-4 relative">
+                <button onclick="switchView('wallet-view', null); clearNavActive();" class="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 rounded-full border border-green-500/30 transition-colors cursor-pointer group">
+                    <i class="fas fa-wallet text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform"></i>
+                    <span class="text-sm font-bold text-green-700 dark:text-green-300" id="wallet-balance">0 EGP</span>
+                </button>
+
+                <button onclick="toggleLanguage()" class="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-customText font-medium transition-colors text-sm">
+                    <i class="fas fa-globe text-customPrimary"></i>
+                    <span id="lang-text">EN</span>
+                </button>
+
+                <div class="relative">
+                    <button onclick="toggleUserMenu()" id="user-btn" class="flex items-center gap-2 bg-customPrimary hover:opacity-90 text-white px-4 py-2 rounded-full font-bold transition-all shadow-md text-sm">
+                        <i class="fas fa-user-graduate"></i>
+                        <span data-i18n="studentLoginBtn" id="user-btn-text">تسجيل دخول</span>
+                    </button>
+                    <div id="user-dropdown" class="absolute end-0 top-full mt-2 w-48 bg-customCard border border-slate-200/20 rounded-xl shadow-xl hidden flex-col overflow-hidden z-50 text-customText font-medium text-sm">
+                        <div class="px-4 py-3 border-b border-slate-200/20 bg-black/5 dark:bg-white/5">
+                            <p class="text-xs opacity-70 mb-1" data-i18n="welcomeSub">مرحباً بك</p>
+                            <p class="font-bold truncate text-customPrimary" id="dropdown-name">أيها الطالب</p>
+                        </div>
+                        <button onclick="switchView('records-view'); closeUserMenu();" class="px-4 py-2.5 text-start hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-2"><i class="fas fa-folder-open w-4"></i> <span data-i18n="records">السجل</span></button>
+                        <button onclick="switchView('stats-view'); closeUserMenu();" class="px-4 py-2.5 text-start hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-2"><i class="fas fa-chart-pie w-4"></i> <span data-i18n="stats">احصائياتي</span></button>
+                        <button onclick="performLogout()" class="px-4 py-2.5 text-start hover:bg-red-500/10 flex items-center gap-2 border-t border-slate-200/20 text-red-500 font-bold"><i class="fas fa-sign-out-alt w-4"></i> <span data-i18n="logout">تسجيل الخروج</span></button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 min-h-0 overflow-y-auto p-4 lg:p-8 scroll-smooth" id="main-scroll-area">
+            <div class="max-w-6xl mx-auto">
+                
+                <!-- Dashboard -->
+                <div id="dashboard-view" class="view-section active space-y-8">
+                    <div class="bg-customCard rounded-2xl p-8 shadow-sm border border-customPrimary/30 relative overflow-hidden flex items-center">
+                        <div class="absolute inset-0 bg-customPrimary/10"></div>
+                        <div class="relative z-10 w-full flex justify-between items-center">
+                            <div>
+                                <h1 class="text-3xl font-bold mb-2 text-customPrimary" id="welcome-title" data-i18n="welcomeMsg">أهلاً بك في منصة فكرة!</h1>
+                                <p class="opacity-80 max-w-lg" data-i18n="welcomeSubLong">كل نجاح بيبدأ من فكرة. استكشف كورساتنا وابدأ رحلة التعلم.</p>
+                            </div>
+                            <i class="fas fa-rocket text-6xl text-customPrimary/20 hidden md:block"></i>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 space-y-6">
+                            <h2 class="text-xl font-bold border-b border-slate-200/20 pb-2" data-i18n="quickLinks">اختصارات سريعة</h2>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                <div onclick="switchView('my-courses-view')" class="bg-customCard p-4 rounded-xl shadow-sm border border-slate-200/20 text-center cursor-pointer hover:border-customPrimary transition-colors">
+                                    <div class="w-10 h-10 mx-auto bg-blue-500/10 text-blue-500 rounded-full flex items-center justify-center text-lg mb-2"><i class="fas fa-book-open"></i></div>
+                                    <span class="text-sm font-bold" data-i18n="myCourses">كورساتي</span>
+                                </div>
+                                <div onclick="switchView('records-view')" class="bg-customCard p-4 rounded-xl shadow-sm border border-slate-200/20 text-center cursor-pointer hover:border-customPrimary transition-colors">
+                                    <div class="w-10 h-10 mx-auto bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center text-lg mb-2"><i class="fas fa-folder-open"></i></div>
+                                    <span class="text-sm font-bold" data-i18n="records">السجل</span>
+                                </div>
+                                <div onclick="switchView('suggested-courses-view')" class="bg-customCard p-4 rounded-xl shadow-sm border border-slate-200/20 text-center cursor-pointer hover:border-customPrimary transition-colors">
+                                    <div class="w-10 h-10 mx-auto bg-purple-500/10 text-purple-500 rounded-full flex items-center justify-center text-lg mb-2"><i class="fas fa-star"></i></div>
+                                    <span class="text-sm font-bold" data-i18n="suggested">كورسات مقترحة</span>
+                                </div>
+                                <div onclick="switchView('wallet-view')" class="bg-customCard p-4 rounded-xl shadow-sm border border-slate-200/20 text-center cursor-pointer hover:border-customPrimary transition-colors">
+                                    <div class="w-10 h-10 mx-auto bg-green-500/10 text-green-500 rounded-full flex items-center justify-center text-lg mb-2"><i class="fas fa-wallet"></i></div>
+                                    <span class="text-sm font-bold" data-i18n="wallet">المحفظة</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Activity Log (Student Only) -->
+                        <div class="bg-customCard rounded-2xl shadow-sm border border-slate-200/20 p-5 flex flex-col h-[350px]">
+                            <h2 class="text-xl font-bold border-b border-slate-200/20 pb-3 mb-4 flex items-center gap-2">
+                                <i class="fas fa-bolt text-amber-500"></i> <span data-i18n="activityLog">سجل النشاطات</span>
+                            </h2>
+                            <div class="flex-1 overflow-y-auto space-y-3 pr-2" id="activity-list">
+                                <!-- JS Populated -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suggested Courses -->
+                <div id="suggested-courses-view" class="view-section space-y-6">
+                    <h2 class="text-2xl font-bold border-b border-slate-200/20 pb-3" data-i18n="suggested">كورسات مقترحة</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="suggested-grid"></div>
+                </div>
+
+                <!-- My Courses -->
+                <div id="my-courses-view" class="view-section space-y-6">
+                    <h2 class="text-2xl font-bold border-b border-slate-200/20 pb-3" data-i18n="myCourses">كورساتي</h2>
+                    <div id="my-courses-empty" class="text-center py-20 opacity-50 bg-customCard rounded-2xl border border-dashed border-slate-400">
+                        <i class="fas fa-box-open text-6xl mb-4"></i>
+                        <p data-i18n="emptyState">حالياً فارغ</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden" id="my-courses-grid"></div>
+                </div>
+
+                <!-- Course Details -->
+                <div id="course-details-view" class="view-section space-y-6">
+                    <button onclick="switchView('my-courses-view')" class="text-customPrimary hover:underline flex items-center gap-2 text-sm font-bold mb-2">
+                        <i class="fas fa-arrow-right rtl:rotate-0 ltr:rotate-180"></i> <span data-i18n="backToMyCourses">العودة لكورساتي</span>
+                    </button>
+                    <div class="bg-customCard rounded-2xl p-6 shadow-sm border border-slate-200/20">
+                        <div class="flex items-center gap-4 mb-6">
+                            <img id="detail-course-img" src="" class="w-16 h-16 object-contain">
+                            <h2 class="text-2xl font-bold uppercase tracking-wider" id="detail-course-title">Course</h2>
+                        </div>
+                        <div class="space-y-3 mb-8" id="lectures-list"></div>
+                        <div class="mt-6 border-t border-slate-200/20 pt-6">
+                            <div onclick="openFinalExam()" class="bg-customPrimary/10 border-2 border-customPrimary border-dashed rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-customPrimary/20 transition-colors">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-14 h-14 bg-customPrimary text-white rounded-full flex items-center justify-center text-2xl shadow-lg"><i class="fas fa-certificate"></i></div>
+                                    <div>
+                                        <h3 class="font-bold text-lg text-customPrimary" data-i18n="finalExamTitle">اختبار إتمام الدورة</h3>
+                                        <p class="text-sm opacity-70" data-i18n="finalExamSub">اجتز هذا الاختبار لتحصل على شهادة الإتمام وإثبات مهارتك.</p>
+                                    </div>
+                                </div>
+                                <button class="bg-customPrimary text-white px-6 py-2 rounded-xl font-bold hover:opacity-90 shadow-md whitespace-nowrap" data-i18n="startExam">ابدأ الاختبار</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Lecture -->
+                <div id="lecture-view" class="view-section space-y-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <button onclick="backToCourseDetails()" class="text-customPrimary hover:underline flex items-center gap-2 text-sm font-bold">
+                            <i class="fas fa-arrow-right rtl:rotate-0 ltr:rotate-180"></i> <span data-i18n="backToLectures">العودة للمحاضرات</span>
+                        </button>
+                        <h2 class="font-bold text-xl uppercase" id="current-lecture-title">Lecture 1</h2>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div onclick="switchLectureTab('video')" id="tab-video" class="interactive-card active-tab border-b-2 border-customPrimary bg-customCard rounded-t-xl p-4 text-center flex flex-col items-center gap-2">
+                            <div class="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center text-xl"><i class="fas fa-play"></i></div>
+                            <span class="font-bold text-sm" data-i18n="tabVideo">فيديو الشرح</span>
+                        </div>
+                        <div onclick="switchLectureTab('summary')" id="tab-summary" class="interactive-card border-b-2 border-transparent bg-customCard rounded-t-xl p-4 text-center flex flex-col items-center gap-2">
+                            <div class="w-12 h-12 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center text-xl"><i class="fas fa-file-alt"></i></div>
+                            <span class="font-bold text-sm" data-i18n="tabSummary">الملخص</span>
+                        </div>
+                        <div onclick="switchLectureTab('hw')" id="tab-hw" class="interactive-card border-b-2 border-transparent bg-customCard rounded-t-xl p-4 text-center flex flex-col items-center gap-2 relative">
+                            <div class="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center text-xl"><i class="fas fa-edit"></i></div>
+                            <span class="font-bold text-sm" data-i18n="tabHW">الواجب</span>
+                        </div>
+                        <div onclick="switchLectureTab('solution')" id="tab-solution" class="interactive-card border-b-2 border-transparent bg-customCard rounded-t-xl p-4 text-center flex flex-col items-center gap-2">
+                            <div class="w-12 h-12 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center text-xl"><i class="fas fa-check-double"></i></div>
+                            <span class="font-bold text-sm" data-i18n="tabSolution">حل الواجب</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-customCard rounded-2xl border border-slate-200/20 overflow-hidden min-h-[400px] flex flex-col">
+                        <div id="content-video" class="tab-content flex-1 flex flex-col items-center justify-center bg-black/90 text-white relative">
+                            <i class="fas fa-play-circle text-6xl opacity-50 hover:opacity-100 hover:scale-110 cursor-pointer transition-all text-customPrimary"></i>
+                        </div>
+                        <div id="content-summary" class="tab-content hidden flex-1 flex flex-col items-center justify-center bg-black/90 text-white relative min-h-[320px]">
+                            <i class="fas fa-play-circle text-6xl opacity-50 hover:opacity-100 hover:scale-110 cursor-pointer transition-all text-blue-400"></i>
+                            <p class="mt-4 text-sm opacity-70 font-bold" id="summary-video-label">ملخص فيديو للمحاضرة</p>
+                        </div>
+                        <div id="content-hw" class="tab-content hidden flex-1 p-4 md:p-6 overflow-y-auto">
+                            <div id="hw-intro" class="text-center flex flex-col items-center justify-center min-h-[280px]">
+                                <i class="fas fa-laptop-code text-5xl mb-4 text-amber-500"></i>
+                                <h3 class="text-xl font-bold mb-2">واجب المحاضرة</h3>
+                                <p class="opacity-70 mb-6 max-w-md text-sm">سؤالين مرتبطين بمحتوى المحاضرة — سؤال واحد في كل شاشة</p>
+                                <button onclick="startHWSolve()" class="bg-amber-500 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-amber-600 shadow-lg">ابدأ الواجب</button>
+                            </div>
+                            <div id="hw-solve" class="hidden max-w-2xl mx-auto">
+                                <!-- Progress pills -->
+                                <div id="hw-progress" class="flex justify-center gap-2 mb-6 flex-wrap"></div>
+                                <div class="bg-black/5 dark:bg-white/5 rounded-2xl border border-slate-200/20 p-5 md:p-8">
+                                    <p class="text-xs font-bold text-customPrimary mb-2" id="hw-q-counter">السؤال 1 من 2</p>
+                                    <h3 class="text-base md:text-lg font-bold mb-5 leading-relaxed" id="hw-q-text"></h3>
+                                    <div id="hw-opts" class="space-y-3"></div>
+                                </div>
+                                <div class="flex gap-3 mt-5">
+                                    <button onclick="hwPrevQ()" id="hw-prev-btn" class="flex-1 py-3 rounded-xl font-bold bg-black/10 dark:bg-white/10 hover:bg-black/15 disabled:opacity-40" disabled>السابق</button>
+                                    <button onclick="hwNextQ()" id="hw-next-btn" class="flex-1 py-3 rounded-xl font-bold bg-customPrimary text-white shadow-md">التالي</button>
+                                </div>
+                            </div>
+                            <div id="hw-result" class="hidden text-center flex flex-col items-center justify-center min-h-[280px]">
+                                <div id="hw-result-icon" class="text-5xl mb-3">✅</div>
+                                <h3 class="text-xl font-bold mb-2">نتيجة الواجب</h3>
+                                <p class="text-3xl font-black text-customPrimary mb-4" id="hw-result-score">2/2</p>
+                                <p class="opacity-70 mb-4 text-sm">تم فتح فيديو حل الواجب</p>
+                                <button onclick="switchLectureTab('solution')" class="bg-green-500 text-white px-6 py-2.5 rounded-xl font-bold">مشاهدة حل الواجب</button>
+                            </div>
+                        </div>
+                        <div id="content-solution" class="tab-content hidden flex-1 flex flex-col items-center justify-center bg-black/90 text-white relative min-h-[320px]">
+                            <div id="solution-locked" class="text-center">
+                                <i class="fas fa-lock text-5xl opacity-40 mb-3"></i>
+                                <p class="opacity-70 font-bold text-sm">حل الواجب مقفول</p>
+                                <p class="opacity-50 text-xs mt-1">سلّم الواجب أولاً لفتح فيديو الحل</p>
+                            </div>
+                            <div id="solution-video" class="hidden text-center">
+                                <i class="fas fa-play-circle text-6xl opacity-50 hover:opacity-100 hover:scale-110 cursor-pointer transition-all text-green-400"></i>
+                                <p class="mt-4 text-sm opacity-70 font-bold">فيديو حل الواجب</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center bg-customCard p-4 rounded-xl border border-slate-200/20">
+                        <button onclick="finishLecture()" class="bg-customPrimary text-white px-6 py-2.5 rounded-lg font-bold shadow-md hover:opacity-90 flex items-center gap-2">
+                            <i class="fas fa-check"></i> <span data-i18n="finishVideo">إنهاء المحاضرة</span>
+                        </button>
+                        <button onclick="nextLecture()" class="flex items-center gap-2 hover:text-customPrimary font-bold px-4 py-2 bg-black/5 dark:bg-white/5 rounded-lg transition-colors">
+                            <span data-i18n="nextLecture">التالي</span> <i class="fas fa-chevron-left rtl:rotate-0 ltr:rotate-180"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Library with Carousel Arrows -->
+                <div id="library-view" class="view-section relative max-w-4xl mx-auto mt-10">
+                    <div class="bg-customCard rounded-2xl border border-slate-200/20 shadow-sm p-16 flex items-center justify-between overflow-hidden relative group">
+                        <!-- Nav Arrows -->
+                        <button class="absolute start-4 w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-customPrimary hover:text-white transition-colors flex items-center justify-center z-10">
+                            <i class="fas fa-chevron-right rtl:rotate-0 ltr:rotate-180 text-lg"></i>
+                        </button>
+                        
+                        <div class="flex-1 text-center">
+                            <i class="fas fa-book-reader text-7xl opacity-20 mb-4 text-customPrimary"></i>
+                            <h2 class="text-3xl font-bold opacity-70 mb-2" data-i18n="pdfLibrary">مكتبة الكتب</h2>
+                            <p class="opacity-50 font-medium" data-i18n="emptyState">حالياً فارغ - سيتم إضافة الكتب قريباً</p>
+                        </div>
+
+                        <button class="absolute end-4 w-12 h-12 rounded-full bg-black/5 dark:bg-white/5 hover:bg-customPrimary hover:text-white transition-colors flex items-center justify-center z-10">
+                            <i class="fas fa-chevron-left rtl:rotate-0 ltr:rotate-180 text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Wallet -->
+                <div id="wallet-view" class="view-section space-y-6 max-w-2xl mx-auto">
+                    <div class="bg-customCard rounded-2xl shadow-sm border border-slate-200/20 p-8 text-center relative overflow-hidden">
+                        <div class="absolute inset-0 bg-green-500/5"></div>
+                        <div class="relative z-10">
+                            <i class="fas fa-wallet text-6xl text-green-500 mb-4"></i>
+                            <h2 class="text-3xl font-bold mb-2" data-i18n="wallet">المحفظة</h2>
+                            <p class="text-4xl font-black text-green-600 dark:text-green-400 mb-8 mt-4"><span id="wallet-large-balance">0</span> <span class="text-xl" data-i18n="currency">EGP</span></p>
+                            
+                            <div class="max-w-md mx-auto space-y-6 text-start">
+                                <div>
+                                    <h4 class="font-bold mb-3" data-i18n="selectPaymentMethod">اختر طريقة الدفع:</h4>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <label class="border border-slate-200/30 rounded-xl p-4 flex items-center gap-3 cursor-pointer hover:border-customPrimary transition-colors bg-black/5 dark:bg-white/5" onclick="selectPayMethod('vodafone')">
+                                            <input type="radio" name="pay-method" value="vodafone" id="pay-vodafone">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-mobile-alt text-red-500 text-xl"></i>
+                                                <span class="font-bold text-sm" data-i18n="vodafoneCash">فودافون كاش</span>
+                                            </div>
+                                        </label>
+                                        <label class="border border-slate-200/30 rounded-xl p-4 flex items-center gap-3 cursor-pointer hover:border-customPrimary transition-colors bg-black/5 dark:bg-white/5" onclick="selectPayMethod('fawry')">
+                                            <input type="radio" name="pay-method" value="fawry" id="pay-fawry">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-barcode text-yellow-500 text-xl"></i>
+                                                <span class="font-bold text-sm" data-i18n="fawry">فوري</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Vodafone Phone Input -->
+                                <div id="vodafone-fields" class="hidden space-y-3">
+                                    <label class="block font-bold text-sm" data-i18n="enterVFNumber">أدخل رقم فودافون كاش:</label>
+                                    <input type="tel" id="vf-phone" maxlength="11" class="w-full text-center text-lg font-bold bg-black/5 dark:bg-white/5 border border-slate-200/20 rounded-xl p-3 focus:outline-none focus:border-customPrimary" placeholder="01xxxxxxxxx" dir="ltr">
+                                    <p class="text-xs opacity-60" data-i18n="vfHint">سيتم إرسال طلب الدفع لرقمك</p>
+                                </div>
+
+                                <!-- Fawry Virtual Number -->
+                                <div id="fawry-fields" class="hidden space-y-3">
+                                    <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-center">
+                                        <p class="text-sm font-bold mb-2" data-i18n="fawryRefLabel">رقم فوري المرجعي:</p>
+                                        <p class="text-2xl font-black tracking-widest text-yellow-600 dark:text-yellow-400" id="fawry-ref" dir="ltr">888-204-7391</p>
+                                        <p class="text-xs opacity-60 mt-2" data-i18n="fawryHint">ادفع في أي منفذ فوري بهذا الرقم ثم اضغط شحن</p>
+                                    </div>
+                                </div>
+
+                                <div class="relative">
+                                    <input type="number" id="charge-input" data-i18n-ph="chargeAmount" class="w-full text-center text-xl font-bold bg-black/5 dark:bg-white/5 border border-slate-200/20 rounded-xl p-3 focus:outline-none focus:border-customPrimary" placeholder="المبلغ المراد شحنه">
+                                </div>
+                                <button onclick="chargeWallet()" class="w-full bg-customPrimary text-white px-4 py-3 rounded-xl font-bold shadow-md hover:opacity-90" data-i18n="rechargeBtn">شحن المحفظة</button>
+                                
+                                <div class="relative py-2 flex items-center">
+                                    <div class="flex-grow border-t border-slate-200/20"></div>
+                                    <span class="flex-shrink-0 mx-4 opacity-50 text-sm font-bold">OR</span>
+                                    <div class="flex-grow border-t border-slate-200/20"></div>
+                                </div>
+                                <button onclick="testCharge()" class="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-xl font-bold shadow-md flex justify-center items-center gap-2">
+                                    <i class="fas fa-bolt"></i> <span data-i18n="testCharge">شحن تجريبي سريع (500 EGP)</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Records -->
+                <div id="records-view" class="view-section space-y-6">
+                    <h2 class="text-2xl font-bold border-b border-slate-200/20 pb-3" data-i18n="records">السجل الشامل</h2>
+                    <div class="flex gap-2 border-b border-slate-200/20 pb-2 overflow-x-auto">
+                        <button onclick="switchRecordTab('watch')" id="rec-tab-watch" class="rec-tab active-tab px-6 py-2 font-bold whitespace-nowrap"><i class="fas fa-history"></i> <span data-i18n="watchHistory">سجل المشاهدة</span></button>
+                        <button onclick="switchRecordTab('exams')" id="rec-tab-exams" class="rec-tab px-6 py-2 font-bold opacity-60 hover:opacity-100 whitespace-nowrap"><i class="fas fa-file-signature"></i> <span data-i18n="examsHistory">سجل الاختبارات</span></button>
+                        <button onclick="switchRecordTab('hws')" id="rec-tab-hws" class="rec-tab px-6 py-2 font-bold opacity-60 hover:opacity-100 whitespace-nowrap"><i class="fas fa-tasks"></i> <span data-i18n="hwsHistory">سجل الواجبات</span></button>
+                    </div>
+                    <div id="rec-content-watch" class="rec-content"><div id="watch-history-list" class="space-y-3"></div></div>
+                    <div id="rec-content-exams" class="rec-content hidden"><div id="exams-history-list" class="space-y-3"></div></div>
+                    <div id="rec-content-hws" class="rec-content hidden"><div id="assignments-grid" class="space-y-3"></div></div>
+                </div>
+
+                <!-- Statistics - Real & Separated -->
+                <div id="stats-view" class="view-section space-y-6">
+                    <h2 class="text-2xl font-bold border-b border-slate-200/20 pb-3" data-i18n="stats">احصائياتي</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-customCard p-5 rounded-2xl border border-slate-200/20 shadow-sm">
+                            <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-play-circle text-green-500"></i> إحصائيات المحاضرات</h3>
+                            <div class="h-[240px]"><canvas id="chartLectures"></canvas></div>
+                            <p class="text-center text-sm mt-3 opacity-70" id="lectures-motivation"></p>
+                        </div>
+                        <div class="bg-customCard p-5 rounded-2xl border border-slate-200/20 shadow-sm">
+                            <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-tasks text-amber-500"></i> إحصائيات الواجبات</h3>
+                            <div class="h-[240px]"><canvas id="chartHW"></canvas></div>
+                            <p class="text-center text-sm mt-3 opacity-70" id="hw-motivation"></p>
+                        </div>
+                        <div class="bg-customCard p-5 rounded-2xl border border-slate-200/20 shadow-sm">
+                            <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-certificate text-purple-500"></i> إحصائيات الاختبارات</h3>
+                            <div class="h-[240px]"><canvas id="chartExams"></canvas></div>
+                            <p class="text-center text-sm mt-3 opacity-70" id="exams-motivation"></p>
+                        </div>
+                        <div class="bg-customCard p-5 rounded-2xl border border-slate-200/20 shadow-sm">
+                            <h3 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-chart-line text-customPrimary"></i> التقدم العام</h3>
+                            <div class="h-[240px]"><canvas id="chartOverall"></canvas></div>
+                            <p class="text-center text-sm mt-3 opacity-70 font-bold text-customPrimary" id="overall-motivation"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Community -->
+                <div id="community-view" class="view-section space-y-6">
+                    <div class="flex justify-between items-center border-b border-slate-200/20 pb-3">
+                        <h2 class="text-2xl font-bold" data-i18n="community">مجتمع فكرة</h2>
+                        <button onclick="joinCommunity()" id="join-comm-btn" class="bg-customPrimary text-white px-4 py-2 rounded-lg font-bold shadow text-sm" data-i18n="joinComm">انضمام</button>
+                    </div>
+                    <div class="bg-customCard p-4 rounded-2xl border border-slate-200/20 flex gap-3 mb-6">
+                        <div class="w-10 h-10 bg-black/10 rounded-full flex items-center justify-center shrink-0"><i class="fas fa-user text-customPrimary"></i></div>
+                        <div class="flex-1 flex flex-col gap-2">
+                            <textarea id="post-textarea" data-i18n-ph="commPlaceholder" class="w-full bg-black/5 dark:bg-white/5 border border-slate-200/10 rounded-xl p-3 resize-none outline-none focus:border-customPrimary text-sm" rows="2" placeholder="بم تفكر؟ شارك سؤالك أو فكرتك..."></textarea>
+                            <div class="flex justify-between items-center">
+                                <button class="text-slate-500 hover:text-customPrimary"><i class="fas fa-image"></i></button>
+                                <button onclick="submitPost()" class="bg-customPrimary/20 text-customPrimary px-4 py-1.5 rounded-lg font-bold text-sm" data-i18n="postBtn">نشر</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="community-feed" class="space-y-5">
+                        <div class="bg-customCard rounded-2xl border border-slate-200/20 p-5 shadow-sm">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-11 h-11 rounded-full bg-customPrimary/20 flex items-center justify-center text-customPrimary font-bold">أ</div>
+                                <div>
+                                    <p class="font-bold text-sm">أحمد محمد</p>
+                                    <p class="text-xs opacity-50">منذ ساعتين · HTML5 Course</p>
+                                </div>
+                            </div>
+                            <p class="text-sm leading-relaxed mb-4">يا جماعة أنا مش فاهم الجزء بتاع الـ Semantic Elements في المحاضرة التانية. ليه بنستخدم &lt;article&gt; و &lt;section&gt; بدل الـ div عادي؟ ومين يقدر يشرحلي الفرق بينهم بطريقة بسيطة؟ 🙏</p>
+                            <div class="flex items-center gap-4 text-sm opacity-70 border-t border-slate-200/20 pt-3 mb-3">
+                                <button onclick="toggleLike(this)" class="like-btn flex items-center gap-1.5 hover:text-red-500 transition-colors" data-liked="false">
+                                    <i class="far fa-heart"></i> <span class="like-count">12</span>
+                                </button>
+                                <button onclick="toggleComments(this)" class="flex items-center gap-1.5 hover:text-customPrimary">
+                                    <i class="far fa-comment"></i> <span>3 تعليقات</span>
+                                </button>
+                            </div>
+                            <div class="comments-section hidden space-y-3 mt-3 border-t border-slate-200/10 pt-3">
+                                <div class="flex gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 text-xs font-bold shrink-0">س</div>
+                                    <div class="flex-1 bg-black/5 dark:bg-white/5 rounded-xl p-3">
+                                        <p class="font-bold text-xs mb-1">سارة علي</p>
+                                        <p class="text-sm">الـ article بيستخدم للمحتوى المستقل زي مقال أو بوست، أما section فبتقسم الصفحة لأجزاء منطقية. جرب تفكر فيهم كحاويات ليها معنى.</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-500 text-xs font-bold shrink-0">م</div>
+                                    <div class="flex-1 bg-black/5 dark:bg-white/5 rounded-xl p-3">
+                                        <p class="font-bold text-xs mb-1">محمود حسن</p>
+                                        <p class="text-sm">بالظبط! وكمان محركات البحث بتفهم الصفحة أحسن لما تستخدم semantic tags. راجع الدقيقة 12 في الفيديو هتلاقي أمثلة حلوة.</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 text-xs font-bold shrink-0">ن</div>
+                                    <div class="flex-1 bg-black/5 dark:bg-white/5 rounded-xl p-3">
+                                        <p class="font-bold text-xs mb-1">نور إبراهيم</p>
+                                        <p class="text-sm">أنا كنت تايه برضو، بس لما عملت الواجب اتظبطت. جرب تكتب صفحة شخصية وتستخدمهم هتفهم الفرق عملياً 💪</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 mt-2">
+                                    <input type="text" class="flex-1 bg-black/5 dark:bg-white/5 border border-slate-200/20 rounded-lg px-3 py-2 text-sm outline-none focus:border-customPrimary" placeholder="اكتب رد...">
+                                    <button onclick="if(!state.user.joinedCommunity) showToast(state.lang==='ar'?'يجب الانضمام للمجتمع أولاً!':'Must join first!',true); else showToast(state.lang==='ar'?'تم الرد':'Replied')" class="bg-customPrimary text-white px-4 py-2 rounded-lg text-sm font-bold">رد</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <footer class="mt-12 text-center text-sm opacity-60 pb-4 border-t border-slate-200/20 pt-6">
+                <p data-i18n="footerText">Dev by Fikra Team | كل نجاح بيبدأ من فكرة | جميع الحقوق محفوظة 2026</p>
+            </footer>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <!-- Customizer -->
+    <div id="customizer-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 p-4">
+        <div class="bg-customCard w-full max-w-md rounded-2xl shadow-2xl p-6 border border-slate-200/20">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold flex items-center gap-2"><i class="fas fa-paint-brush text-amber-500"></i> <span data-i18n="themeCustomizer">تخصيص الواجهة</span></h3>
+                <button onclick="closeModal('customizer-modal')" class="opacity-50 hover:opacity-100"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-lg">
+                    <span class="font-bold text-sm" data-i18n="colorPrimary">اللون الأساسي</span>
+                    <input type="color" value="#6d28d9" onchange="updateThemeVar('--primary-color', this.value)">
+                </div>
+                <div class="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-lg">
+                    <span class="font-bold text-sm" data-i18n="colorSelection">لون التحديد</span>
+                    <input type="color" value="#4c1d95" onchange="updateThemeVar('--selection-color', this.value + '40')">
+                </div>
+                <div class="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-lg">
+                    <span class="font-bold text-sm" data-i18n="colorBg">لون الخلفية</span>
+                    <input type="color" value="#0f172a" onchange="updateThemeVar('--bg-color', this.value)">
+                </div>
+                <div class="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-lg">
+                    <span class="font-bold text-sm" data-i18n="colorSidebar">لون الكروت</span>
+                    <input type="color" value="#1e293b" onchange="updateThemeVar('--card-color', this.value); updateThemeVar('--sidebar-color', this.value);">
+                </div>
+                <div class="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-lg">
+                    <span class="font-bold text-sm" data-i18n="colorText">لون النصوص</span>
+                    <input type="color" value="#f8fafc" onchange="updateThemeVar('--text-color', this.value)">
+                </div>
+            </div>
+            <button onclick="closeModal('customizer-modal')" class="mt-6 w-full bg-customPrimary text-white py-3 rounded-xl font-bold shadow-md" data-i18n="saveChanges">حفظ التغييرات</button>
+        </div>
+    </div>
+
+    <!-- Login -->
+    <div id="login-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 p-4">
+        <div class="bg-customCard w-full max-w-lg rounded-2xl shadow-2xl p-8 border border-slate-200/20 text-center">
+            <i class="fas fa-user-circle text-6xl text-customPrimary mb-4"></i>
+            <h3 class="text-2xl font-black uppercase mb-6" data-i18n="studentLogin">تسجيل الدخول</h3>
+            <div class="space-y-5 text-start">
+                <input type="text" id="login-user" data-i18n-ph="usernamePh" class="w-full bg-black/5 dark:bg-white/5 border border-slate-200/20 rounded-xl p-4 focus:outline-none focus:border-customPrimary font-medium" placeholder="اسم المستخدم">
+                <input type="password" data-i18n-ph="passwordPh" class="w-full bg-black/5 dark:bg-white/5 border border-slate-200/20 rounded-xl p-4 focus:outline-none focus:border-customPrimary font-medium" placeholder="كلمة المرور">
+                <div class="text-end">
+                    <a href="#" onclick="openRegister()" class="text-sm text-customPrimary hover:underline font-bold" data-i18n="noAccount">ليس لدي حساب؟ أنشئ حساباً جديداً</a>
+                </div>
+                <div class="flex gap-4 pt-4">
+                    <button onclick="closeModal('login-modal')" class="flex-1 px-4 py-3 bg-black/10 dark:bg-white/10 rounded-xl font-bold" data-i18n="cancel">إلغاء</button>
+                    <button onclick="performAuth('login')" class="flex-1 px-4 py-3 bg-customPrimary text-white rounded-xl font-bold shadow-md text-lg" data-i18n="loginBtn">دخول</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register -->
+    <div id="reg-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 p-4">
+        <div class="bg-customCard w-full max-w-xl rounded-2xl shadow-2xl p-8 border border-slate-200/20 max-h-full overflow-y-auto">
+            <h3 class="text-2xl font-black uppercase mb-6 text-center text-customPrimary border-b border-slate-200/20 pb-4" data-i18n="register">إنشاء حساب جديد</h3>
+            <div class="space-y-4 text-sm font-medium">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" id="reg-user" data-i18n-ph="usernamePh" class="w-full bg-black/5 dark:bg-white/5 border border-slate-200/20 rounded-xl p-3 focus:border-customPrimary" placeholder="اسم المستخدم">
+                    <input type="text" data-i18n-ph="contactPh" class="w-full bg-black/5 dark:bg-white/5 border border-slate-200/20 rounded-xl p-3 focus:border-customPrimary" placeholder="رقم الموبايل أو الإيميل">
+                </div>
+                <input type="password" data-i18n-ph="passwordPh" class="w-full bg-black/5 dark:bg-white/5 border border-slate-200/20 rounded-xl p-3 focus:border-customPrimary" placeholder="كلمة المرور">
+                
+                <div class="bg-black/5 dark:bg-white/5 p-4 rounded-xl border border-slate-200/20">
+                    <label class="block mb-2 font-bold opacity-80" data-i18n="studentLevel">المرحلة الدراسية</label>
+                    <select id="reg-level" onchange="handleLevelChange()" class="w-full bg-customCard text-customText border border-slate-200/20 rounded-xl p-3 focus:border-customPrimary outline-none mb-4 font-bold">
+                        <option class="bg-customCard text-customText" value="univ" data-i18n="levelUniv">طالب جامعي</option>
+                        <option class="bg-customCard text-customText" value="high" data-i18n="levelHigh">طالب ثانوي</option>
+                        <option class="bg-customCard text-customText" value="middle" data-i18n="levelMiddle">طالب إعدادي</option>
+                    </select>
+                    <div id="dynamic-fields" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+
+                <div class="flex gap-4 pt-4">
+                    <button onclick="closeModal('reg-modal')" class="flex-1 px-4 py-3 bg-black/10 dark:bg-white/10 rounded-xl font-bold" data-i18n="cancel">إلغاء</button>
+                    <button onclick="performAuth('register')" class="flex-1 px-4 py-3 bg-customPrimary text-white rounded-xl font-bold shadow-md text-lg" data-i18n="registerBtn">تسجيل</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Professional Final Exam Modal -->
+    <div id="exam-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 p-4">
+        <div class="bg-customCard w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200/20 max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="p-5 border-b border-slate-200/20 flex items-center justify-between bg-customPrimary/10 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-customPrimary text-white rounded-full flex items-center justify-center"><i class="fas fa-certificate"></i></div>
+                    <div>
+                        <h3 class="font-black text-lg" data-i18n="finalExamTitle">اختبار إتمام الدورة</h3>
+                        <p class="text-xs opacity-70" id="exam-course-name">Course</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-sm font-bold bg-customPrimary/20 text-customPrimary px-3 py-1 rounded-full" id="exam-progress">1 / 10</span>
+                    <button onclick="closeModal('exam-modal')" class="opacity-50 hover:opacity-100"><i class="fas fa-times text-lg"></i></button>
+                </div>
+            </div>
+            <div class="h-1.5 bg-black/10 dark:bg-white/10 shrink-0">
+                <div id="exam-progress-bar" class="h-full bg-customPrimary transition-all duration-300" style="width:10%"></div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6" id="exam-question-area"></div>
+            <div class="p-4 border-t border-slate-200/20 flex justify-between items-center shrink-0 bg-black/5 dark:bg-white/5">
+                <button onclick="prevExamQ()" id="exam-prev-btn" class="px-5 py-2.5 rounded-xl font-bold bg-black/10 dark:bg-white/10 hover:bg-black/20 disabled:opacity-40" disabled>
+                    <i class="fas fa-chevron-right rtl:rotate-0 ltr:rotate-180"></i> السابق
+                </button>
+                <button onclick="nextExamQ()" id="exam-next-btn" class="px-6 py-2.5 rounded-xl font-bold bg-customPrimary text-white hover:opacity-90 shadow-md">
+                    التالي <i class="fas fa-chevron-left rtl:rotate-0 ltr:rotate-180"></i>
+                </button>
+                <button onclick="submitExam()" id="exam-submit-btn" class="hidden px-6 py-2.5 rounded-xl font-bold bg-green-500 text-white hover:bg-green-600 shadow-md">
+                    <i class="fas fa-check-double"></i> تسليم الاختبار
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./script-main.js"></script>
+    </script>
+</body>
+</html>
