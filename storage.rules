@@ -1,0 +1,14 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Course videos / PDFs uploaded by teachers from the course builder
+    match /course-media/{file} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'teacher'
+        && request.resource.size < 1024 * 1024 * 1024
+        && (request.resource.contentType.matches('video/.*')
+            || request.resource.contentType == 'application/pdf');
+    }
+  }
+}

@@ -37,10 +37,13 @@ body {
     transition: transform 0.3s, box-shadow 0.3s;
     cursor: pointer;
 }
-.interactive-card:hover {
-    transform: translateY(-6px) scale(1.01);
-    box-shadow: 0 12px 28px -6px var(--primary-color);
+@media (hover: hover) {
+    .interactive-card:hover {
+        transform: translateY(-6px) scale(1.01);
+        box-shadow: 0 12px 28px -6px var(--primary-color);
+    }
 }
+.interactive-card:active { transform: scale(0.98); }
 
 .nav-item { position: relative; transition: all 0.2s; overflow: hidden; }
 .nav-item:hover { background-color: var(--selection-color); }
@@ -76,14 +79,16 @@ html[dir="ltr"] .nav-item.active::before {
     border-radius: 4px;
 }
 
-#sidebar.collapsed { width: 5rem !important; }
-#sidebar.collapsed .sidebar-text,
-#sidebar.collapsed .motivation-box,
-#sidebar.collapsed .logo-text { display: none !important; }
-#sidebar.collapsed .nav-item {
-    justify-content: center;
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
+@media (min-width: 1024px) {
+    #sidebar.collapsed { width: 5rem !important; }
+    #sidebar.collapsed .sidebar-text,
+    #sidebar.collapsed .motivation-box,
+    #sidebar.collapsed .logo-text { display: none !important; }
+    #sidebar.collapsed .nav-item {
+        justify-content: center;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
 }
 
 @media (max-width: 1023px) {
@@ -125,7 +130,13 @@ html[dir="ltr"] .nav-item.active::before {
 .fade-out { opacity: 0; transition: opacity 0.2s; }
 .fade-in { opacity: 1; transition: opacity 0.25s; }
 
-#toast { transform: translate(-50%, -20px); }
+#toast {
+    left: 50% !important;
+    right: auto !important;
+    transform: translate(-50%, -20px);
+    max-width: calc(100vw - 2rem);
+    top: calc(1rem + env(safe-area-inset-top, 0px));
+}
 #toast.show {
     opacity: 1 !important;
     pointer-events: auto;
@@ -260,3 +271,193 @@ html:not(.dark) select option {
 html:not(.dark) .filter-chip.active {
     color: #fff !important;
 }
+
+
+/* ==========================================================
+   MOBILE-FIRST FIXES  (landing scroll + responsive app shell)
+   ========================================================== */
+
+:root { --app-height: 100vh; }
+@supports (height: 100dvh) { :root { --app-height: 100dvh; } }
+
+html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    height: 100%;
+}
+
+/* The body is fixed to the REAL visible height (not 100vh, which is taller
+   than the screen on mobile browsers and hid the bottom of the page). */
+.app-body {
+    height: var(--app-height);
+    min-height: var(--app-height);
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+/* ---------- Landing page: a proper scroll container ---------- */
+.landing-scroll {
+    position: fixed;
+    top: 0; right: 0; bottom: 0; left: 0;
+    height: var(--app-height);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+    scroll-behavior: smooth;
+}
+.landing-scroll.hidden { display: none !important; }
+.landing-nav { padding-top: max(0.75rem, env(safe-area-inset-top, 0px)); }
+.landing-footer { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); }
+
+/* ---------- App shell ---------- */
+.app-shell { height: var(--app-height); }
+.app-header { padding-top: env(safe-area-inset-top, 0px); height: calc(4rem + env(safe-area-inset-top, 0px)); }
+.main-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* ---------- Modals: scroll when taller than the screen ---------- */
+.app-modal {
+    align-items: flex-start !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding-top: max(1rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+.app-modal > div { margin: auto; max-height: none; }
+
+/* ---------- Messages (DM) view ---------- */
+#inst-messages-view.dm-view.active {
+    display: flex;
+    height: calc(var(--app-height) - 8.5rem);
+    min-height: 420px;
+}
+
+/* ---------- Phones & small tablets ---------- */
+@media (max-width: 1023px) {
+    #sidebar {
+        height: var(--app-height);
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        box-shadow: 0 0 40px rgba(0,0,0,0.35);
+        overflow: hidden;
+    }
+    #sidebar.mobile-closed { box-shadow: none; visibility: hidden; transition: transform .3s ease, visibility 0s linear .3s; }
+    #sidebar:not(.mobile-closed) { visibility: visible; }
+    #sidebar .nav-item { padding-top: 0.85rem; padding-bottom: 0.85rem; }
+}
+
+@media (max-width: 767px) {
+    body { font-size: 15.5px; }
+
+    /* 16px inputs: stops iOS Safari from zooming when a field is focused */
+    input, select, textarea { font-size: 16px !important; }
+
+    /* comfortable touch targets */
+    button, .nav-item, .filter-chip, select { min-height: 42px; }
+    .app-header button { min-height: 40px; }
+
+    /* cards & lists breathe less, fit more */
+    .view-section { word-break: break-word; }
+    .interactive-card { -webkit-touch-callout: none; }
+
+    /* tabs inside a lecture scroll sideways instead of wrapping to 3 rows */
+    #lecture-view .flex-wrap.gap-2.border-b {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    #lecture-view .flex-wrap.gap-2.border-b::-webkit-scrollbar { display: none; }
+    #lecture-view .flex-wrap.gap-2.border-b > button { flex: 0 0 auto; white-space: nowrap; }
+
+    /* community tabs / filter chips scroll sideways */
+    #community-tabs, #students-filters { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 4px; }
+    #community-tabs::-webkit-scrollbar, #students-filters::-webkit-scrollbar { display: none; }
+    #community-tabs > *, #students-filters > * { flex: 0 0 auto; white-space: nowrap; }
+    .filter-chip { padding: 0.45rem 0.9rem; }
+
+    /* DM: list on top (short), chat below (tall) */
+    #inst-messages-view.dm-view.active { height: calc(var(--app-height) - 7.5rem); }
+    /* one pane at a time: student list OR the open conversation */
+    #inst-messages-view > .flex-1 > div { flex: 1 1 0; min-height: 0; }
+    #inst-messages-view > .flex-1 > div:last-child { display: none; }
+    #inst-messages-view.dm-chat-open > .flex-1 > div:first-child { display: none; }
+    #inst-messages-view.dm-chat-open > .flex-1 > div:last-child { display: flex; }
+    #inst-messages-view.dm-chat-open > h2 { display: none; }
+    #inst-messages-view.dm-chat-open.dm-view.active { height: calc(var(--app-height) - 6rem); }
+    #dm-chat-area { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+    /* payment buttons full width */
+    #wallet-view .flex-wrap.justify-center > button { flex: 1 1 100%; justify-content: center; }
+
+    /* user dropdown never goes off-screen */
+    #user-dropdown { width: min(14rem, calc(100vw - 1.5rem)); }
+
+    /* modals */
+    .app-modal { padding-left: 0.75rem; padding-right: 0.75rem; }
+    #login-modal h3, #reg-modal h3 { margin-bottom: 1rem; }
+
+    /* course-builder file input row */
+    #course-builder-view .flex.justify-end.gap-3 { flex-direction: column-reverse; }
+    #course-builder-view .flex.justify-end.gap-3 > button { width: 100%; justify-content: center; }
+}
+
+/* very small phones */
+@media (max-width: 360px) {
+    body { font-size: 15px; }
+    .app-header { padding-left: 0.5rem; padding-right: 0.5rem; }
+    #wallet-balance { font-size: 0.8rem; }
+    .header-title { display: none; }
+}
+
+/* landscape phones: don't waste vertical space */
+@media (max-height: 480px) and (orientation: landscape) {
+    .landing-scroll > div.flex-1 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+    .app-modal { align-items: flex-start !important; }
+}
+
+/* respect users who disable animation */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+
+/* ---- Landing scroll FIX: children must never shrink inside the fixed-height
+   flex column, otherwise the hero (overflow:hidden) gets squeezed to the screen
+   height and clips the features/footer, so there is nothing left to scroll. ---- */
+.landing-scroll > * { flex-shrink: 0 !important; }
+.landing-scroll > .flex-1 { flex: 1 0 auto !important; min-height: auto !important; }
+
+
+/* ---- User dropdown: fully opaque, always above content ---- */
+#user-dropdown {
+    background-color: var(--card-color) !important;
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid rgba(148,163,184,0.45) !important;
+    box-shadow: 0 18px 40px -8px rgba(0,0,0,0.45) !important;
+    z-index: 90 !important;
+}
+#user-dropdown > div:first-child { background-color: var(--selection-color) !important; }
+#user-dropdown button { background-color: transparent; }
+#user-dropdown button:hover { background-color: var(--selection-color); }
+.app-header { position: relative; z-index: 60; }
+
+/* ---- Student detail ---- */
+.sd-card { background: var(--card-color); border: 1px solid rgba(148,163,184,0.25); border-radius: 0.9rem; }
+.sd-day { width: 100%; aspect-ratio: 1; border-radius: 6px; background: rgba(148,163,184,0.2); }
+.sd-day.on { background: #22c55e; }
+.student-row { cursor: pointer; transition: border-color .2s, transform .15s; }
+.student-row:hover { border-color: var(--primary-color); }
+.student-row:active { transform: scale(0.99); }
+
+/* lecture media */
+#solution-video { width: 100%; }
+#content-video video, #content-summary video, #solution-video video { display: block; width: 100%; }
