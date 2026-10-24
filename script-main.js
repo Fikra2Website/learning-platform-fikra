@@ -1,1033 +1,2203 @@
-       let state = {
-            lang: 'ar',
-            user: { 
-                isLoggedIn: false, name: '', wallet: 0, myCourses: [], 
-                completedHW: {}, finishedLectures: {}, passedExams: {}, quizScores: {},
-                watchHistory: [], hwGrades: {}, solutionUnlocked: {},
-                activity: [], joinedCommunity: false
+// ==================== FIKRA PLATFORM - Main Script ====================
+// Fully enhanced version with teacher full control, complete course builder,
+// proper registration, wallet methods, i18n, stats, records, etc.
+
+let state = {
+    lang: 'ar',
+    user: {
+        isLoggedIn: false,
+        role: 'student',
+        name: '',
+        email: '',
+        wallet: 0,
+        myCourses: [],
+        completedHW: {},
+        finishedLectures: {},
+        passedExams: {},
+        quizScores: {},
+        watchHistory: [],
+        hwGrades: {},
+        solutionUnlocked: {},
+        activity: [],
+        joinedCommunity: false,
+        ownedBooks: [],
+        studentId: '',
+        parentPhone: '',
+        level: '',
+        year: ''
+    },
+    currentCourseId: null,
+    currentLectureIndex: 0,
+    chartInstances: {},
+    exam: { questions: [], answers: {}, current: 0, courseId: null },
+    currentLectureTab: 'video',
+    sidebarCollapsed: false
+};
+
+// ==================== TRANSLATIONS ====================
+const translations = {
+    ar: {
+        platformName: 'FIKRA',
+        platformNameHeader: 'منصة فكرة',
+        pageTitle: 'منصة فكرة - FIKRA',
+        dashboard: 'لوحة التحكم',
+        myCourses: 'كورساتي',
+        suggested: 'كورسات مقترحة',
+        pdfLibrary: 'مكتبة الكتب',
+        records: 'السجل',
+        stats: 'إحصائياتي',
+        community: 'مجتمع فكرة',
+        instructorPanel: 'لوحة المعلم',
+        manageCourses: 'إدارة الكورسات',
+        manageStudents: 'قسم الطلاب',
+        internalDMs: 'نظام المراسلة',
+        themeCustomizer: 'تخصيص الواجهة',
+        welcomeMsg: 'أهلاً بك في منصة فكرة!',
+        welcomeSubLong: 'كل نجاح بيبدأ من فكرة. استكشف كورساتنا وابدأ رحلة التعلم.',
+        quickLinks: 'اختصارات سريعة',
+        wallet: 'المحفظة',
+        activityLog: 'سجل النشاطات',
+        logout: 'تسجيل الخروج',
+        welcomeSub: 'مرحباً بك',
+        studentLoginBtn: 'حسابي',
+        loginTitle: 'تسجيل الدخول',
+        registerTitle: 'إنشاء حساب جديد (طالب)',
+        emailPlaceholder: 'البريد الإلكتروني',
+        passPlaceholder: 'كلمة المرور',
+        namePlaceholder: 'الاسم الرباعي',
+        phonePlaceholder: 'رقم الموبايل',
+        studentIdPlaceholder: 'رقم الطالب / القيد',
+        parentPhonePlaceholder: 'رقم ولي الأمر (مطلوب)',
+        levelLabel: 'المرحلة الدراسية',
+        yearLabel: 'السنة الدراسية',
+        createAccount: 'إنشاء الحساب',
+        cancel: 'إلغاء',
+        loginBtn: 'دخول',
+        noAccount: 'ليس لدي حساب؟ أنشئ حساباً جديداً',
+        haveAccount: 'لدي حساب بالفعل',
+        joinNow: 'انضم الآن مجاناً',
+        landingHero: 'تعلم بذكاء، وتفوق في دراستك مع منصة فكرة',
+        landingSub: 'نحن فريق فكرة، نقدم لك تجربة تعليمية متكاملة تجمع بين الشرح المبسط، التقييم المستمر، والتواصل المباشر مع معلميك. انضم إلينا الآن وابدأ رحلة التفوق.',
+        feature1Title: 'محاضرات تفاعلية',
+        feature1Desc: 'شرح تفصيلي بجودة عالية مع ملخصات لكل درس.',
+        feature2Title: 'واجبات واختبارات',
+        feature2Desc: 'تطبيق عملي فوري وتقييم مستمر لمستواك.',
+        feature3Title: 'مجتمع تعليمي',
+        feature3Desc: 'تواصل مع زملائك ومعلميك في بيئة داعمة.',
+        feature4Title: 'محفظة ذكية',
+        feature4Desc: 'اشحن بسهولة عبر فوري أو فودافون كاش وابدأ التعلم فوراً.',
+        landingBadge: 'كل نجاح بيبدأ من فكرة 💡',
+        footer: 'Dev by Fikra Team | كل نجاح بيبدأ من فكرة | جميع الحقوق محفوظة 2026',
+        buyCourse: 'شراء الكورس',
+        owned: 'ممتلك',
+        emptyCourses: 'لا توجد كورسات بعد. تصفح المقترحة!',
+        chargeWallet: 'شحن المحفظة',
+        instantPay: 'فوري',
+        vodafoneCash: 'فودافون كاش',
+        enterPhone: 'أدخل رقم الموبايل',
+        chargeNow: 'اشحن الآن',
+        testCharge: 'شحن تجريبي (500)',
+        addCourse: 'إضافة كورس جديد',
+        courseName: 'اسم الكورس',
+        coursePrice: 'سعر الكورس (EGP)',
+        courseStage: 'المرحلة الدراسية',
+        courseYear: 'السنة الدراسية',
+        courseThumb: 'الصورة المصغرة (اختياري)',
+        addLesson: 'إضافة درس',
+        publishCourse: 'نشر الكورس',
+        backToCourses: 'العودة لإدارة الكورسات',
+        lessonTitle: 'عنوان الدرس',
+        addVideo: 'إضافة فيديو',
+        videoExplain: 'فيديو الشرح',
+        videoSummary: 'فيديو الملخص',
+        videoSolution: 'فيديو الحل',
+        homework: 'الواجب',
+        addQuestion: 'إضافة سؤال',
+        questionText: 'نص السؤال',
+        option: 'اختيار',
+        correctAnswer: 'الإجابة الصحيحة',
+        saveQuestion: 'حفظ السؤال',
+        noLessons: 'لا توجد دروس حالياً. اضغط على إضافة درس.',
+        studentsTitle: 'قسم الطلاب',
+        noStudents: 'لا يوجد طلاب مسجلين بعد.',
+        communityTitle: 'مجتمع فكرة',
+        joinCommunity: 'انضم للمجتمع',
+        postPlaceholder: 'اكتب منشوراً...',
+        postBtn: 'نشر',
+        recordsTitle: 'السجل',
+        watchHistory: 'سجل المشاهدة',
+        hwHistory: 'سجل الواجبات',
+        examHistory: 'سجل الاختبارات',
+        statsTitle: 'إحصائياتي',
+        views: 'المشاهدات',
+        completedHW: 'واجبات محلولة',
+        avgScore: 'متوسط الدرجات',
+        progress: 'التقدم العام',
+        librarySoon: 'المكتبة قريباً',
+        selectConversation: 'اختر محادثة',
+        typeMessage: 'اكتب رسالة...',
+        searchStudent: 'ابحث عن طالب...',
+        noActivity: 'لا يوجد نشاط بعد.',
+        finishLecture: 'إنهاء المحاضرة',
+        next: 'التالي',
+        startHW: 'ابدأ الواجب',
+        submitHW: 'تسليم الواجب',
+        prev: 'السابق',
+        score: 'النتيجة',
+        viewSolution: 'مشاهدة الحل',
+        lockedSolution: 'حل الواجب مقفول',
+        customizeTitle: 'تخصيص الواجهة',
+        primaryColor: 'اللون الأساسي',
+        darkMode: 'الوضع الداكن',
+        lightMode: 'الوضع الفاتح',
+        apply: 'تطبيق',
+        close: 'إغلاق',
+        high: 'ثانوي',
+        middle: 'إعدادي',
+        univ: 'جامعي',
+        year1: 'الصف الأول',
+        year2: 'الصف الثاني',
+        year3: 'الصف الثالث',
+        year4: 'السنة الرابعة',
+        teacherWelcome: 'أهلاً بك يا أستاذ',
+        studentWelcome: 'مرحباً',
+        fullNameError: 'الاسم يجب أن يكون رباعي (4 أسماء مفصولة بمسافات)',
+        emailError: 'البريد الإلكتروني غير صحيح',
+        phoneError: 'رقم الموبايل يجب أن يكون 11 رقم ويبدأ بـ 010/011/012/015',
+        parentPhoneError: 'رقم ولي الأمر غير صحيح (11 رقم)',
+        noAccountFound: 'لا يوجد حساب بهذا البريد. أنشئ حساباً أولاً من التسجيل.',
+        wrongPassword: 'كلمة المرور غير صحيحة',
+        bookAdded: 'تم إضافة الكتاب',
+        bookDeleted: 'تم الحذف',
+        bookBought: 'تم الشراء! يمكنك التحميل الآن',
+        download: 'تحميل',
+        buy: 'شراء',
+        addBook: 'إضافة كتاب PDF',
+        bookTitle: 'اسم المادة / الكتاب',
+        publishBook: 'نشر الكتاب',
+        noBooks: 'لا توجد كتب متاحة حالياً',
+        allYears: 'كل السنوات',
+        allFaculties: 'كل الكليات',
+        allLevels: 'الكل',
+        yearLabelShort: 'سنة',
+        faculty: 'الكلية',
+        insufficientBalance: 'الرصيد غير كافٍ',
+        posted: 'تم النشر',
+        coursePublished: 'تم نشر الكورس بنجاح!',
+        purchaseOk: 'تم الشراء بنجاح!',
+        demoAccountCreated: 'تم إنشاء الحساب (وضع تجريبي)',
+        loginSuccess: 'تم تسجيل الدخول بنجاح!',
+        logoutSuccess: 'تم تسجيل الخروج',
+        mustRegister: 'أنشئ حساباً أولاً'
+    },
+    en: {
+        platformName: 'FIKRA',
+        platformNameHeader: 'FIKRA PLATFORM',
+        pageTitle: 'FIKRA Platform',
+        dashboard: 'Dashboard',
+        myCourses: 'My Courses',
+        suggested: 'Suggested Courses',
+        pdfLibrary: 'Books Library',
+        records: 'Records',
+        stats: 'My Stats',
+        community: 'FIKRA Community',
+        instructorPanel: 'Instructor Panel',
+        manageCourses: 'Manage Courses',
+        manageStudents: 'Students Section',
+        internalDMs: 'Messaging System',
+        themeCustomizer: 'Theme Customizer',
+        welcomeMsg: 'Welcome to FIKRA Platform!',
+        welcomeSubLong: 'Every success starts with an idea. Explore our courses and start your learning journey.',
+        quickLinks: 'Quick Links',
+        wallet: 'Wallet',
+        activityLog: 'Activity Log',
+        logout: 'Logout',
+        welcomeSub: 'Welcome',
+        studentLoginBtn: 'My Account',
+        loginTitle: 'Login',
+        registerTitle: 'Create New Account (Student)',
+        emailPlaceholder: 'Email address',
+        passPlaceholder: 'Password',
+        namePlaceholder: 'Full Name',
+        phonePlaceholder: 'Mobile Number',
+        studentIdPlaceholder: 'Student / Enrollment ID',
+        parentPhonePlaceholder: 'Parent Phone (Required)',
+        levelLabel: 'Education Level',
+        yearLabel: 'Academic Year',
+        createAccount: 'Create Account',
+        cancel: 'Cancel',
+        loginBtn: 'Login',
+        noAccount: "Don't have an account? Create one",
+        haveAccount: 'I already have an account',
+        joinNow: 'Join Free Now',
+        landingHero: 'Learn Smart & Excel with FIKRA Platform',
+        landingSub: 'We are the FIKRA team. We offer a complete learning experience with clear explanations, continuous assessment, and direct communication with your teachers. Join us now and start your excellence journey.',
+        feature1Title: 'Interactive Lectures',
+        feature1Desc: 'High-quality detailed explanations with summaries for every lesson.',
+        feature2Title: 'Homework & Exams',
+        feature2Desc: 'Immediate practical application and continuous evaluation of your level.',
+        feature3Title: 'Learning Community',
+        feature3Desc: 'Connect with peers and teachers in a supportive environment.',
+        feature4Title: 'Smart Wallet',
+        feature4Desc: 'Top up easily via Instant Pay or Vodafone Cash and start learning instantly.',
+        landingBadge: 'Every success starts with an idea 💡',
+        footer: 'Dev by Fikra Team | Every success starts with an idea | All rights reserved 2026',
+        buyCourse: 'Buy Course',
+        owned: 'Owned',
+        emptyCourses: 'No courses yet. Browse suggested!',
+        chargeWallet: 'Charge Wallet',
+        instantPay: 'Instant Pay',
+        vodafoneCash: 'Vodafone Cash',
+        enterPhone: 'Enter mobile number',
+        chargeNow: 'Charge Now',
+        testCharge: 'Test Charge (500)',
+        addCourse: 'Add New Course',
+        courseName: 'Course Name',
+        coursePrice: 'Course Price (EGP)',
+        courseStage: 'Education Stage',
+        courseYear: 'Academic Year',
+        courseThumb: 'Thumbnail (Optional)',
+        addLesson: 'Add Lesson',
+        publishCourse: 'Publish Course',
+        backToCourses: 'Back to Manage Courses',
+        lessonTitle: 'Lesson Title',
+        addVideo: 'Add Video',
+        videoExplain: 'Explanation Video',
+        videoSummary: 'Summary Video',
+        videoSolution: 'Solution Video',
+        homework: 'Homework',
+        addQuestion: 'Add Question',
+        questionText: 'Question Text',
+        option: 'Option',
+        correctAnswer: 'Correct Answer',
+        saveQuestion: 'Save Question',
+        noLessons: 'No lessons yet. Click Add Lesson.',
+        studentsTitle: 'Students Section',
+        noStudents: 'No registered students yet.',
+        communityTitle: 'FIKRA Community',
+        joinCommunity: 'Join Community',
+        postPlaceholder: 'Write a post...',
+        postBtn: 'Post',
+        recordsTitle: 'Records',
+        watchHistory: 'Watch History',
+        hwHistory: 'Homework History',
+        examHistory: 'Exam History',
+        statsTitle: 'My Statistics',
+        views: 'Views',
+        completedHW: 'Completed HW',
+        avgScore: 'Average Score',
+        progress: 'Overall Progress',
+        librarySoon: 'Library Coming Soon',
+        selectConversation: 'Select a conversation',
+        typeMessage: 'Type a message...',
+        searchStudent: 'Search student...',
+        noActivity: 'No activity yet.',
+        finishLecture: 'Finish Lecture',
+        next: 'Next',
+        startHW: 'Start Homework',
+        submitHW: 'Submit Homework',
+        prev: 'Previous',
+        score: 'Score',
+        viewSolution: 'View Solution',
+        lockedSolution: 'Solution is locked',
+        customizeTitle: 'Customize Interface',
+        primaryColor: 'Primary Color',
+        darkMode: 'Dark Mode',
+        lightMode: 'Light Mode',
+        apply: 'Apply',
+        close: 'Close',
+        high: 'High School',
+        middle: 'Middle School',
+        univ: 'University',
+        year1: 'Year 1',
+        year2: 'Year 2',
+        year3: 'Year 3',
+        year4: 'Year 4',
+        teacherWelcome: 'Welcome Professor',
+        studentWelcome: 'Hello',
+        fullNameError: 'Full name must be 4 parts separated by spaces',
+        emailError: 'Invalid email address',
+        phoneError: 'Phone must be 11 digits starting with 010/011/012/015',
+        parentPhoneError: 'Invalid parent phone (11 digits)',
+        noAccountFound: 'No account found. Please register first.',
+        wrongPassword: 'Wrong password',
+        bookAdded: 'Book added',
+        bookDeleted: 'Deleted',
+        bookBought: 'Purchased! You can download now',
+        download: 'Download',
+        buy: 'Buy',
+        addBook: 'Add PDF Book',
+        bookTitle: 'Subject / Book name',
+        publishBook: 'Publish Book',
+        noBooks: 'No books available yet',
+        allYears: 'All years',
+        allFaculties: 'All faculties',
+        allLevels: 'All',
+        yearLabelShort: 'Year',
+        faculty: 'Faculty',
+        insufficientBalance: 'Insufficient balance',
+        posted: 'Posted',
+        coursePublished: 'Course published successfully!',
+        purchaseOk: 'Purchase successful!',
+        demoAccountCreated: 'Account created (demo mode)',
+        loginSuccess: 'Logged in successfully!',
+        logoutSuccess: 'Logged out',
+        mustRegister: 'Please register first'
+    }
+};
+
+const motivations = {
+    ar: [
+        '💡 كل نجاح بيبدأ من فكرة... استمر!',
+        '🚀 التعلم استثمار في نفسك، متوقفش!',
+        '🔥 أنت أقرب للنجاح مما تتخيل!',
+        '💪 كل محاضرة بتخلّيك أقوى!',
+        '🌟 الفكرة الجيدة تستاهل التنفيذ!'
+    ],
+    en: [
+        '💡 Every success starts with an idea... keep going!',
+        '🚀 Learning is an investment in yourself!',
+        '🔥 You are closer to success than you think!',
+        '💪 Every lecture makes you stronger!',
+        '🌟 A good idea deserves to be executed!'
+    ]
+};
+let motivIndex = 0;
+
+// ==================== FACULTIES (University) ====================
+const FACULTIES = [
+    { id: 'medicine', nameAr: 'طب بشري', nameEn: 'Medicine', years: 7 },
+    { id: 'dentistry', nameAr: 'طب أسنان', nameEn: 'Dentistry', years: 5 },
+    { id: 'pharmacy', nameAr: 'صيدلة', nameEn: 'Pharmacy', years: 6 },
+    { id: 'engineering', nameAr: 'هندسة', nameEn: 'Engineering', years: 5 },
+    { id: 'cs', nameAr: 'حاسبات ومعلومات', nameEn: 'Computer Science', years: 4 },
+    { id: 'science', nameAr: 'علوم', nameEn: 'Science', years: 4 },
+    { id: 'nursing', nameAr: 'تمريض', nameEn: 'Nursing', years: 4 },
+    { id: 'pt', nameAr: 'علاج طبيعي', nameEn: 'Physical Therapy', years: 5 },
+    { id: 'alson', nameAr: 'ألسن', nameEn: 'Al-Alsun', years: 4 },
+    { id: 'arts', nameAr: 'آداب', nameEn: 'Arts', years: 4 },
+    { id: 'education', nameAr: 'تربية', nameEn: 'Education', years: 4 },
+    { id: 'commerce', nameAr: 'تجارة', nameEn: 'Commerce', years: 4 },
+    { id: 'law', nameAr: 'حقوق', nameEn: 'Law', years: 4 },
+    { id: 'masscom', nameAr: 'إعلام', nameEn: 'Mass Communication', years: 4 },
+    { id: 'agriculture', nameAr: 'زراعة', nameEn: 'Agriculture', years: 4 },
+    { id: 'veterinary', nameAr: 'طب بيطري', nameEn: 'Veterinary Medicine', years: 5 },
+    { id: 'finearts', nameAr: 'فنون جميلة', nameEn: 'Fine Arts', years: 4 },
+    { id: 'appliedarts', nameAr: 'فنون تطبيقية', nameEn: 'Applied Arts', years: 4 },
+    { id: 'tourism', nameAr: 'سياحة وفنادق', nameEn: 'Tourism & Hotels', years: 4 },
+    { id: 'economics', nameAr: 'اقتصاد وعلوم سياسية', nameEn: 'Economics & Political Science', years: 4 },
+    { id: 'specific_edu', nameAr: 'تربية نوعية', nameEn: 'Specific Education', years: 4 },
+    { id: 'kindergarten', nameAr: 'تربية طفولة', nameEn: 'Kindergarten Education', years: 4 },
+    { id: 'other', nameAr: 'أخرى', nameEn: 'Other', years: 4 }
+];
+
+
+function levelLabel(level) {
+    const map = {
+        high: { ar: 'ثانوي', en: 'High School' },
+        middle: { ar: 'إعدادي', en: 'Middle School' },
+        univ: { ar: 'جامعي', en: 'University' }
+    };
+    const m = map[level];
+    if (!m) return level || '';
+    return state.lang === 'ar' ? m.ar : m.en;
+}
+
+function getFacultyName(id) {
+    const f = FACULTIES.find(x => x.id === id);
+    if (!f) return id || '';
+    return state.lang === 'ar' ? f.nameAr : f.nameEn;
+}
+
+// ==================== LOCAL PERSISTENCE ====================
+const STORAGE_KEY = 'fikra_platform_v1';
+
+function saveToStorage() {
+    try {
+        const payload = {
+            user: state.user,
+            lang: state.lang,
+            db: {
+                courses: db.courses,
+                students: db.students,
+                books: db.books,
+                communityPosts: db.communityPosts,
+                communities: db.communities,
+                messages: db.messages
             },
-            currentCourseId: null, currentLectureIndex: 1, 
-            chartInstances: {}, exam: { questions: [], answers: {}, current: 0, courseId: null },
-            payMethod: null, currentLectureTab: "video"
+            savedAt: Date.now()
         };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch (e) {
+        console.warn('saveToStorage failed', e);
+    }
+}
 
-        const motivations = {
-            ar: [
-                "💡 كل نجاح بيبدأ من فكرة... استمر!",
-                "🚀 التعلم استثمار في نفسك، متوقفش!",
-                "🔥 أنت أقرب للنجاح مما تتخيل!",
-                "💪 كل محاضرة بتخلّيك أقوى!",
-                "⭐ المثابرة سر التفوق، كمل!",
-                "🎯 ركّز على التقدم مش الكمال!",
-                "📚 المعرفة قوة، زوّد رصيدك!",
-                "🌟 اليوم خطوة، بكرة قفزة!",
-                "🧠 عقلك عضلة... مرّنه كل يوم!",
-                "🏆 الأبطال بيتدربوا لما غيرهم نايمين!",
-                "✨ مش لازم تكون الأفضل، بس لازم تبدأ!",
-                "🎓 الشهادة حلوة، بس المهارة أحلى!",
-                "💎 الصبر مفتاح الإتقان!",
-                "🔑 كل خبير كان يوم مبتدئ!",
-                "✨ الفشل درس، مش نهاية!",
-                "⚡ دقيقة دلوقتي = ساعة بكرة!",
-                "🛡️ الانضباط بيكسب الموهبة!",
-                "🌱 ازرع عادة، تحصد شخصية!",
-                "📈 تقدّم بسيط كل يوم بيغيّر حياتك!",
-                "🔥 الشغف وقود، والانضباط محرك!",
-                "💫 أنت قادر على أكتر مما تظن!",
-                "🧭 الطريق طويل، بس كل خطوة بتقرّبك!",
-                "🎁 أعظم استثمار: نفسك!",
-                "🙌 متقارنش نفسك بغيرك، قارن بنفسك امبارح!"
-            ],
-            en: [
-                "💡 Every success starts with an idea... keep going!",
-                "🚀 Learning is an investment in yourself!",
-                "🔥 You're closer to success than you think!",
-                "💪 Every lecture makes you stronger!",
-                "⭐ Persistence is the secret... continue!",
-                "🎯 Focus on progress, not perfection!",
-                "📚 Knowledge is power, increase yours!",
-                "🌟 A step today, a leap tomorrow!",
-                "🧠 Your mind is a muscle... train it daily!",
-                "🏆 Champions train while others sleep!",
-                "✨ You don't need to be the best, just start!",
-                "🎓 Certificates are nice, skills are better!",
-                "💎 Patience is the key to mastery!",
-                "🔑 Every expert was once a beginner!",
-                "✨ Failure is a lesson, not the end!",
-                "⚡ A minute now = an hour later!",
-                "🛡️ Discipline beats talent!",
-                "🌱 Plant a habit, harvest a character!",
-                "📈 Small daily progress changes your life!",
-                "🔥 Passion is fuel, discipline is the engine!",
-                "💫 You're capable of more than you think!",
-                "🧭 The road is long, every step gets you closer!",
-                "🎁 The greatest investment: yourself!",
-                "🙌 Don't compare to others, compare to yesterday!"
-            ]
-        };
-        let motivIndex = 0;
-
-        function cycleMotivation() {
-            const box = document.getElementById('motivation-box');
-            const el = document.getElementById('motivation-text');
-            if (!el) return;
-            // Nice border flash
-            if (box) {
-                box.classList.add('flash-border');
-                setTimeout(() => box.classList.remove('flash-border'), 600);
-            }
-            el.classList.add('fade-out');
-            setTimeout(() => {
-                motivIndex = (motivIndex + 1) % motivations[state.lang].length;
-                el.textContent = motivations[state.lang][motivIndex];
-                el.classList.remove('fade-out');
-                el.classList.add('fade-in');
-                setTimeout(() => el.classList.remove('fade-in'), 250);
-            }, 200);
+function loadFromStorage() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        if (data.db) {
+            if (Array.isArray(data.db.courses)) db.courses = data.db.courses;
+            if (Array.isArray(data.db.students)) db.students = data.db.students;
+            if (Array.isArray(data.db.books)) db.books = data.db.books;
+            if (Array.isArray(data.db.communityPosts)) db.communityPosts = data.db.communityPosts;
+            if (Array.isArray(data.db.communities)) db.communities = data.db.communities;
+            if (data.db.messages) db.messages = data.db.messages;
         }
-        // Auto-cycle every 12s as well
-        setInterval(() => { cycleMotivation(); }, 3600000); // كل ساعة
+        if (data.lang) state.lang = data.lang;
+        if (data.user && data.user.isLoggedIn) {
+            state.user = { ...state.user, ...data.user };
+            return true; // was logged in
+        }
+        return false;
+    } catch (e) {
+        console.warn('loadFromStorage failed', e);
+        return false;
+    }
+}
 
-        const db = {
-            courses: [
-                { id: 'c_html', name: 'HTML5 Course', desc: 'أساسيات بناء هيكل الويب', price: 150, logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg' },
-                { id: 'c_css', name: 'CSS3 Master', desc: 'تنسيق وتصميم واجهات احترافية', price: 200, logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg' },
-                { id: 'c_js', name: 'JavaScript PRO', desc: 'برمجة التفاعلات المتقدمة', price: 300, logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/javascript/javascript-original.svg' }
-            ],
-            assignments: [
-                { id: 'hw_html', title: 'تمرين HTML - بناء صفحة شخصية', q1: 'أنشئ عنوان و 3 فقرات.', q2: 'أضف صورة برابط خارجي.', maxGrade: 10 },
-                { id: 'hw_css', title: 'تمرين CSS - تصميم الألوان', q1: 'غير لون الخلفية إلى رمادي.', q2: 'اجعل الخط بحجم 20 بكسل عريض.', maxGrade: 10 }
+function clearSessionKeepData() {
+    // Keep db data, only clear user session
+    state.user.isLoggedIn = false;
+    state.user.role = 'student';
+    state.user.name = '';
+    state.user.email = '';
+    state.user.wallet = 0;
+    state.user.myCourses = [];
+    state.user.ownedBooks = [];
+    state.user.activity = [];
+    state.user.completedHW = {};
+    state.user.finishedLectures = {};
+    state.user.hwGrades = {};
+    state.user.solutionUnlocked = {};
+    state.user.watchHistory = [];
+    state.user.joinedCommunity = false;
+    saveToStorage();
+}
+
+
+
+// ==================== MOCK DATABASE ====================
+const db = {
+    courses: [
+        {
+            id: 'c_html',
+            name: 'HTML5 Course',
+            desc: 'أساسيات بناء هيكل الويب',
+            price: 150,
+            logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg',
+            stage: 'univ',
+            year: '1',
+            lessons: [
+                {
+                    title: 'Introduction to HTML',
+                    explainUrl: '',
+                    summaryUrl: '',
+                    solutionUrl: '',
+                    questions: [
+                        { text: 'What does HTML stand for?', options: ['Hyper Text Markup Language', 'High Tech Modern Language', 'Home Tool Markup Language', 'Hyperlinks and Text Markup Language'], correct: 0 }
+                    ]
+                },
+                {
+                    title: 'Basic Tags',
+                    explainUrl: '',
+                    summaryUrl: '',
+                    solutionUrl: '',
+                    questions: []
+                }
             ]
-        };
+        },
+        {
+            id: 'c_css',
+            name: 'CSS3 Master',
+            desc: 'تنسيق وتصميم واجهات احترافية',
+            price: 200,
+            logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg',
+            stage: 'univ',
+            year: '1',
+            lessons: [
+                {
+                    title: 'CSS Selectors',
+                    explainUrl: '',
+                    summaryUrl: '',
+                    solutionUrl: '',
+                    questions: []
+                }
+            ]
+        }
+    ],
+    students: [
+        { id: 's1', name: 'أحمد محمد', email: 'ahmed@example.com', level: 'high', year: '3', joined: '2026-01-15' }
+    ],
+    messages: {},
+    books: [
+        { id: 'b1', title: 'ملخص فيزياء أولى ثانوي', level: 'high', year: '1', faculty: '', price: 25, fileName: 'physics_y1.pdf', addedBy: 'المعلم' }
+    ],
+    communityPosts: [
+        { id: 1, communityId: 'general', author: 'المعلم', role: 'teacher', text: 'مرحباً بكم في مجتمع فكرة! شاركونا أفكاركم.', time: '2026-10-20' }
+    ],
+    communities: [
+        { id: 'general', nameAr: 'مجتمع فكرة', nameEn: 'FIKRA Community', isDefault: true }
+    ]
+};
 
-        const i18n = {
-            ar: {
-                pageTitle: "منصة FIKRA - لوحة الطالب", platformName: "FIKRA", platformNameHeader: "FIKRA PLATFORM",
-                dashboard: "لوحة التحكم", myCourses: "كورساتي", suggested: "كورسات مقترحة",
-                pdfLibrary: "مكتبة الكتب", records: "السجل", stats: "احصائياتي", community: "مجتمع فكرة",
-                themeCustomizer: "تخصيص الواجهة", studentLoginBtn: "تسجيل دخول", studentLogin: "تسجيل الدخول",
-                welcomeMsg: "أهلاً بك في منصة فكرة!", welcomeSub: "مرحباً بك", welcomeSubLong: "كل نجاح بيبدأ من فكرة. استكشف كورساتنا وابدأ رحلة التعلم.",
-                quickLinks: "اختصارات سريعة", wallet: "المحفظة", activityLog: "سجل النشاطات", emptyState: "حالياً فارغ - سيتم إضافة المحتوى قريباً",
-                footerText: "Dev by Fikra Team | كل نجاح بيبدأ من فكرة | جميع الحقوق محفوظة 2026",
-                currency: "EGP", testCharge: "شحن تجريبي سريع (500 EGP)", rechargeBtn: "شحن المحفظة", selectPaymentMethod: "اختر طريقة الدفع:",
-                vodafoneCash: "فودافون كاش", fawry: "فوري", chargeAmount: "المبلغ المراد شحنه",
-                colorPrimary: "اللون الأساسي", colorSelection: "لون التحديد", colorBg: "لون الخلفية", colorSidebar: "لون الكروت",
-                colorText: "لون النصوص", saveChanges: "حفظ التغييرات", cancel: "إلغاء", cancelEx: "ليس الآن", loginBtn: "دخول",
-                registerBtn: "تسجيل", noAccount: "ليس لدي حساب؟ أنشئ حساباً جديداً", register: "إنشاء حساب جديد",
-                studentLevel: "المرحلة الدراسية", levelUniv: "طالب جامعي", levelHigh: "طالب ثانوي", levelMiddle: "طالب إعدادي", 
-                year1: "سنة أولى", year2: "سنة ثانية", year3: "سنة ثالثة", year4: "سنة رابعة", facultyPlace: "اسم الكلية",
-                parentPhonePlace: "رقم ولي الأمر (إجباري)", usernamePh: "اسم المستخدم", contactPh: "رقم الموبايل أو الإيميل",
-                passwordPh: "كلمة المرور", buyBtn: "شراء", enrolled: "ممتلك", backToMyCourses: "العودة لكورساتي", backToLectures: "العودة للمحاضرات",
-                tabVideo: "فيديو الشرح", tabSummary: "الملخص", tabHW: "الواجب", tabSolution: "حل الواجب", finishVideo: "إنهاء المحاضرة", nextLecture: "التالي",
-                dummyHWTitle: "واجب تطبيقي", hwInstruction: "يمكنك رفع صورة للحل أو البدء في الحل الإلكتروني.", submitHWBtn: "تسليم إلكتروني",
-                uploadHwPic: "رفع صورة للحل", summaryPlaceholder: "محتوى الملخص سيظهر هنا...", hwDownload: "تنزيل (PDF)", hwSubmit: "تسليم", hwDone: "تم التسليم",
-                loginReq: "يجب تسجيل الدخول أولاً!", noMoney: "الرصيد غير كافٍ! اشحن محفظتك.", successBuy: "تم الشراء بنجاح!", addLog: "تم شحن",
-                subLog: "تم تسليم واجب الدروس بنجاح", openLecLog: "فتحت محاضرة", logout: "تسجيل الخروج",
-                watchHistory: "سجل المشاهدة", examsHistory: "سجل الاختبارات", hwsHistory: "سجل الواجبات (الدرجات)",
-                finalExamTitle: "اختبار إتمام الدورة", finalExamSub: "اجتز هذا الاختبار لتحصل على شهادة الإتمام وإثبات مهارتك.",
-                startExam: "ابدأ الاختبار", startExamBtn: "ابدأ", examDesc: "هل أنت مستعد لاختبار معلوماتك والحصول على الشهادة؟",
-                examPassed: "مبروك! لقد اجتزت الاختبار بنجاح.", joinComm: "انضمام", postBtn: "نشر", selectPaymentError: "يرجى اختيار طريقة الدفع أولاً!",
-                commPlaceholder: "بم تفكر؟ شارك سؤالك أو فكرتك...", defaultStudent: "أيها الطالب",
-                chartAttended: "دروس حضرتها", chartUnattended: "دروس لم تحضرها", chartSub: "واجبات مسلمة", chartUnsub: "واجبات معلقة"
-            },
-            en: {
-                pageTitle: "FIKRA - Student Dashboard", platformName: "FIKRA", platformNameHeader: "FIKRA PLATFORM",
-                dashboard: "Dashboard", myCourses: "My Courses", suggested: "Suggested Courses",
-                pdfLibrary: "Library", records: "Records", stats: "My Stats", community: "Fikra Community",
-                themeCustomizer: "Theme Customizer", studentLoginBtn: "Login", studentLogin: "Sign In",
-                welcomeMsg: "Welcome to FIKRA!", welcomeSub: "Welcome,", welcomeSubLong: "Every success starts with an idea. Explore and learn.",
-                quickLinks: "Quick Links", wallet: "Wallet", activityLog: "Activity Log", emptyState: "Currently Empty - Content coming soon",
-                footerText: "Dev by Fikra Team | Every success begins with an idea | All rights reserved 2026",
-                currency: "EGP", testCharge: "Quick Charge (500 EGP)", rechargeBtn: "Recharge", selectPaymentMethod: "Select Payment Method:",
-                vodafoneCash: "Vodafone Cash", fawry: "Fawry", chargeAmount: "Amount to recharge",
-                colorPrimary: "Primary Color", colorSelection: "Selection Color", colorBg: "Background Color", colorSidebar: "Cards Color",
-                colorText: "Text Color", saveChanges: "Save Changes", cancel: "Cancel", cancelEx: "Not Now", loginBtn: "Login",
-                registerBtn: "Register", noAccount: "Don't have an account? Create one.", register: "Create Account",
-                studentLevel: "Study Level", levelUniv: "University", levelHigh: "High School", levelMiddle: "Middle School", 
-                year1: "1st Year", year2: "2nd Year", year3: "3rd Year", year4: "4th Year", facultyPlace: "Faculty Name",
-                parentPhonePlace: "Parent Phone (Required)", usernamePh: "Username", contactPh: "Email or Phone",
-                passwordPh: "Password", buyBtn: "Buy", enrolled: "Owned", backToMyCourses: "Back to My Courses", backToLectures: "Back to Lectures",
-                tabVideo: "Video", tabSummary: "Summary", tabHW: "Homework", tabSolution: "Solution", finishVideo: "Finish", nextLecture: "Next",
-                dummyHWTitle: "Practice Assignment", hwInstruction: "Upload a picture or submit online.", submitHWBtn: "Submit Online",
-                uploadHwPic: "Upload Image", summaryPlaceholder: "Summary content will appear here...", hwDownload: "Download (PDF)", hwSubmit: "Submit", hwDone: "Submitted",
-                loginReq: "Please login first!", noMoney: "Insufficient balance! Please recharge.", successBuy: "Purchased successfully!", addLog: "Recharged",
-                subLog: "Successfully submitted assignment", openLecLog: "Opened Lecture", logout: "Logout",
-                watchHistory: "Watch History", examsHistory: "Exams History", hwsHistory: "HW History (Grades)",
-                finalExamTitle: "Course Final Exam", finalExamSub: "Pass this exam to get your completion certificate.",
-                startExam: "Start Exam", startExamBtn: "Start", examDesc: "Are you ready to test your knowledge?",
-                examPassed: "Congratulations! You passed the exam.", joinComm: "Join", postBtn: "Post", selectPaymentError: "Please select a payment method!",
-                commPlaceholder: "What's on your mind? Share it...", defaultStudent: "Student",
-                chartAttended: "Attended Lessons", chartUnattended: "Unattended", chartSub: "Submitted HW", chartUnsub: "Pending HW"
-            }
-        };
+// Builder state
+let builderLessons = [];
+let currentBuilderCourseId = null; // for edit
 
-        document.addEventListener('DOMContentLoaded', () => { 
-            renderSuggested(); renderAssignments(); updateWalletUI(); handleLevelChange(); renderActivity();
-            // On desktop, never use mobile-closed
-            if (window.innerWidth >= 1024) {
-                document.getElementById('sidebar').classList.remove('mobile-closed');
-            }
-            // Handle resize
-            window.addEventListener('resize', () => {
-                const sb = document.getElementById('sidebar');
-                const overlay = document.getElementById('sidebar-overlay');
-                if (window.innerWidth >= 1024) {
-                    sb.classList.remove('mobile-closed');
-                    if (overlay) overlay.classList.remove('active');
-                } else {
-                    // keep closed by default on mobile after resize to desktop->mobile
-                    if (!sb.classList.contains('mobile-closed')) {
-                        // leave as is if user had it open
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', () => {
+    // Load saved theme
+    const savedTheme = localStorage.getItem('fikra-theme');
+    if (savedTheme === 'dark') document.documentElement.classList.add('dark');
+    else if (savedTheme === 'light') document.documentElement.classList.remove('dark');
+    setTimeout(updateThemeToggleUI, 50);
+
+    const savedPrimary = localStorage.getItem('fikra-primary');
+    if (savedPrimary) {
+        document.documentElement.style.setProperty('--primary-color', savedPrimary);
+    }
+
+    // Restore platform data + session
+    const wasLoggedIn = loadFromStorage();
+
+    // Lang (storage may override)
+    const savedLang = state.lang || localStorage.getItem('fikra-lang') || 'ar';
+    state.lang = savedLang;
+    localStorage.setItem('fikra-lang', savedLang);
+    applyLanguage();
+
+    renderSuggested();
+    updateWalletUI();
+    renderInstCourses();
+    renderStudents();
+    renderCommunity();
+    renderActivity();
+    updateRegFormFields();
+    populateFaculties();
+
+    // Auto re-login UI if session existed
+    if (wasLoggedIn && state.user.isLoggedIn) {
+        document.getElementById('landing-page').classList.add('hidden');
+        const app = document.getElementById('app-wrapper');
+        app.classList.remove('hidden');
+        app.style.opacity = '1';
+        document.getElementById('dropdown-name').innerText = state.user.name;
+        const welcomeEl = document.getElementById('welcome-title');
+        if (welcomeEl) {
+            welcomeEl.innerText = state.user.role === 'teacher'
+                ? `${t('teacherWelcome')} ${state.user.name}`
+                : `${t('studentWelcome')} ${state.user.name}!`;
+        }
+        applyPermissions();
+        updateWalletUI();
+        renderMyCourses();
+        renderSuggested();
+    }
+
+    // Firebase auth listener
+    if (window.firebaseApp) {
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                firebase.firestore().collection('users').doc(user.uid).get().then((doc) => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        handleSuccessfulLogin(data.role || 'student', data.name || user.email, user.email, data);
+                    } else {
+                        handleSuccessfulLogin('student', user.email.split('@')[0], user.email);
                     }
-                }
-            });
+                }).catch(() => handleSuccessfulLogin('student', user.email.split('@')[0], user.email));
+            }
         });
+    }
 
-        function showToast(keyOrText, isError = false) {
-            const t = document.getElementById('toast');
-            document.getElementById('toast-message').innerText = i18n[state.lang][keyOrText] || keyOrText;
-            t.className = `fixed top-4 start-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-full shadow-lg opacity-100 transition-all duration-300 z-[100] flex items-center gap-3 transform translate-y-0 ${isError ? 'bg-red-500' : 'bg-customPrimary'}`;
-            document.getElementById('toast-icon').className = isError ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
-            setTimeout(() => t.classList.replace('opacity-100', 'opacity-0'), 3000);
-        }
+    // Motivation cycle
+    setInterval(cycleMotivation, 3600000);
+});
 
-        function switchView(id, navEl = null) {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            if(navEl) { clearNavActive(); navEl.classList.add('active'); }
-            if(window.innerWidth < 1024) closeMobileSidebar();
-            const scrollArea = document.getElementById('main-scroll-area');
-            if (scrollArea) scrollArea.scrollTo(0,0);
-            if(id === 'stats-view') renderStats();
-            if(id === 'community-view') { if(typeof updateCommunityLock==='function') updateCommunityLock(); }
-            if(id === 'records-view') { renderWatchHistory(); }
-        }
-        function clearNavActive() { document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active')); }
-        function goToDashboard() {
-            switchView('dashboard-view', document.getElementById('nav-dashboard'));
-            if (window.innerWidth < 1024) closeMobileSidebar();
-        }
+// ==================== LANGUAGE ====================
+function toggleLanguage() {
+    state.lang = state.lang === 'ar' ? 'en' : 'ar';
+    localStorage.setItem('fikra-lang', state.lang);
+    applyLanguage();
+}
 
-        function toggleSidebarSize() {
-            const sb = document.getElementById('sidebar');
-            if(window.innerWidth >= 1024) { 
-                sb.classList.toggle('collapsed');
-                sb.classList.toggle('w-64');
-                sb.classList.toggle('w-20');
-            } else { 
-                toggleMobileSidebar(); 
-            }
-        }
-        function toggleMobileSidebar() {
-            const sb = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            if (!sb) return;
-            const isClosed = sb.classList.contains('mobile-closed');
-            if (isClosed) {
-                sb.classList.remove('mobile-closed');
-                if (overlay) overlay.classList.add('active');
+function applyLanguage() {
+    const lang = state.lang;
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+    // Update all data-i18n
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[lang][key]) {
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                el.placeholder = translations[lang][key];
             } else {
-                sb.classList.add('mobile-closed');
-                if (overlay) overlay.classList.remove('active');
+                el.textContent = translations[lang][key];
             }
         }
-        function closeMobileSidebar() {
-            const sb = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            if (sb) sb.classList.add('mobile-closed');
-            if (overlay) overlay.classList.remove('active');
-        }
-        function openMobileSidebar() {
-            const sb = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            if (sb) sb.classList.remove('mobile-closed');
-            if (overlay) overlay.classList.add('active');
-        }
+    });
 
-        function openModal(id) { document.getElementById(id).classList.remove('opacity-0', 'pointer-events-none'); }
-        function closeModal(id) { document.getElementById(id).classList.add('opacity-0', 'pointer-events-none'); }
+    // Specific elements
+    const langText = document.getElementById('lang-text');
+    if (langText) langText.textContent = lang === 'ar' ? 'EN' : 'عربي';
+    const landingLang = document.getElementById('landing-lang-text');
+    if (landingLang) landingLang.textContent = lang === 'ar' ? 'EN' : 'عربي';
 
-        function updateThemeVar(name, val) { document.documentElement.style.setProperty(name, val); }
-        function openCustomizer() { openModal('customizer-modal'); }
+    // Update motivation
+    const motivEl = document.getElementById('motivation-text');
+    if (motivEl) motivEl.textContent = motivations[lang][motivIndex % motivations[lang].length];
 
-        function toggleLanguage() {
-            state.lang = state.lang === 'ar' ? 'en' : 'ar';
-            const html = document.documentElement;
-            html.setAttribute('dir', state.lang === 'ar' ? 'rtl' : 'ltr'); html.setAttribute('lang', state.lang);
-            document.getElementById('lang-text').innerText = state.lang === 'ar' ? 'EN' : 'عربي';
-            
-            document.querySelectorAll('[data-i18n]').forEach(el => el.innerText = i18n[state.lang][el.getAttribute('data-i18n')] || el.innerText);
-            document.querySelectorAll('[data-i18n-ph]').forEach(el => el.placeholder = i18n[state.lang][el.getAttribute('data-i18n-ph')] || el.placeholder);
-            
-            handleLevelChange(); renderSuggested(); renderMyCourses(); renderAssignments(); renderActivity(); updateWalletUI();
-            const motEl = document.getElementById('motivation-text');
-            if (motEl) motEl.textContent = motivations[state.lang][motivIndex];
-            if(state.user.isLoggedIn) {
-                const displayName = state.user.name || i18n[state.lang].defaultStudent;
-                document.getElementById('user-btn-text').innerText = displayName;
-                document.getElementById('dropdown-name').innerText = displayName;
-                document.getElementById('welcome-title').innerText = `${i18n[state.lang].welcomeSub} ${displayName}`;
-            }
-            if(state.chartInstance) renderStats();
-        }
+    // Re-render dynamic parts that need translation
+    renderSuggested();
+    renderMyCourses();
+    renderInstCourses();
+    renderStudents();
+    renderCommunity();
+    renderRecords();
+    renderStats();
+}
 
-        function handleLevelChange() {
-            const val = document.getElementById('reg-level').value;
-            const container = document.getElementById('dynamic-fields');
-            const yrOpts = [1,2,3].map(i => `<option class="bg-customCard text-customText" value="${i}">${i18n[state.lang]['year'+i]}</option>`).join('');
-            const yr4 = val === 'univ' ? `<option class="bg-customCard text-customText" value="4">${i18n[state.lang]['year4']}</option>` : '';
-            
-            container.innerHTML = `
-                <select class="w-full bg-customCard text-customText border border-slate-200/20 rounded-xl p-3 outline-none mb-4 font-bold">
-                    ${yrOpts}${yr4}
-                </select>
-                <input type="text" class="w-full bg-black/5 dark:bg-white/5 border border-slate-200/20 rounded-xl p-3" placeholder="${val === 'univ' ? i18n[state.lang].facultyPlace : i18n[state.lang].parentPhonePlace}">
-            `;
-        }
+function t(key) {
+    return translations[state.lang][key] || key;
+}
 
-        function toggleUserMenu() {
-            if(!state.user.isLoggedIn) openModal('login-modal');
-            else document.getElementById('user-dropdown').classList.toggle('hidden');
-        }
-        function closeUserMenu() { document.getElementById('user-dropdown').classList.add('hidden'); }
-        function openRegister() { closeModal('login-modal'); setTimeout(() => openModal('reg-modal'), 300); }
+// ==================== MOTIVATION ====================
+function cycleMotivation() {
+    const box = document.getElementById('motivation-box');
+    const el = document.getElementById('motivation-text');
+    if (!el) return;
+    if (box) {
+        box.classList.add('flash-border');
+        setTimeout(() => box.classList.remove('flash-border'), 600);
+    }
+    el.classList.add('fade-out');
+    setTimeout(() => {
+        motivIndex = (motivIndex + 1) % motivations[state.lang].length;
+        el.textContent = motivations[state.lang][motivIndex];
+        el.classList.remove('fade-out');
+        el.classList.add('fade-in');
+        setTimeout(() => el.classList.remove('fade-in'), 250);
+    }, 200);
+}
 
-        function performAuth(type) {
-            let name = document.getElementById(type === 'login' ? 'login-user' : 'reg-user').value.trim();
-            state.user.name = name || ''; // empty implies generic
-            state.user.isLoggedIn = true;
-            
-            const displayName = state.user.name || i18n[state.lang].defaultStudent;
-            document.getElementById('user-btn-text').innerText = displayName;
-            document.getElementById('dropdown-name').innerText = displayName;
-            document.getElementById('welcome-title').innerText = `${i18n[state.lang].welcomeSub} ${displayName}`;
-            
-            closeModal(type === 'login' ? 'login-modal' : 'reg-modal');
-            showToast(state.lang === 'ar' ? 'تم الدخول بنجاح!' : 'Logged in!');
-        }
+// ==================== UI HELPERS ====================
+function showToast(text, isError = false) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    document.getElementById('toast-message').innerText = text;
+    t.className = `fixed top-4 start-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-full shadow-lg z-[100] flex items-center gap-3 transition-all duration-300 ${isError ? 'bg-red-500' : 'bg-customPrimary'} show`;
+    document.getElementById('toast-icon').className = isError ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+    setTimeout(() => {
+        t.classList.remove('show');
+        t.classList.add('opacity-0', 'pointer-events-none');
+    }, 3200);
+}
 
-        function performLogout() {
-            state.user.isLoggedIn = false;
-            document.getElementById('user-btn-text').innerText = i18n[state.lang].studentLoginBtn;
-            closeUserMenu(); showToast(state.lang === 'ar' ? 'تم تسجيل الخروج' : 'Logged out'); goToDashboard();
-        }
+function switchView(id, navEl = null) {
+    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
 
-        function updateWalletUI() {
-            document.getElementById('wallet-balance').innerText = `${state.user.wallet} ${i18n[state.lang].currency}`;
-            document.getElementById('wallet-large-balance').innerText = state.user.wallet;
-        }
-        function selectPayMethod(method) {
-            state.payMethod = method;
-            document.getElementById('vodafone-fields').classList.toggle('hidden', method !== 'vodafone');
-            document.getElementById('fawry-fields').classList.toggle('hidden', method !== 'fawry');
-            if (method === 'fawry') {
-                document.getElementById('fawry-ref').textContent = '888-' + Math.floor(100 + Math.random()*900) + '-' + Math.floor(1000 + Math.random()*9000);
-            }
-        }
-        function chargeWallet() {
-            if (!state.payMethod) return showToast('selectPaymentError', true);
-            if (state.payMethod === 'vodafone') {
-                const phone = document.getElementById('vf-phone').value.trim();
-                if (!/^01[0-9]{9}$/.test(phone)) return showToast(state.lang==='ar'?'أدخل رقم فودافون صحيح (11 رقم يبدأ بـ 01)':'Enter valid VF number', true);
-            }
-            const v = parseInt(document.getElementById('charge-input').value);
-            if (v > 0) processCharge(v);
-            else showToast(state.lang === 'ar' ? 'أدخل مبلغاً صحيحاً' : 'Enter a valid amount', true);
-        }
-        function testCharge() { processCharge(500); }
-        function processCharge(amount) {
-            if(!state.user.isLoggedIn) return showToast('loginReq', true);
-            state.user.wallet += amount; updateWalletUI();
-            logActivity(`${i18n[state.lang].addLog} ${amount} EGP`, 'fa-bolt', 'text-amber-500');
-            showToast(state.lang === 'ar' ? 'تم الشحن بنجاح!' : 'Recharged successfully!'); 
-            document.getElementById('charge-input').value = '';
-        }
-        function toggleSidebarCollapse() {
-            if (window.innerWidth >= 1024) {
-                const sb = document.getElementById('sidebar');
-                if (!sb) return;
-                sb.classList.toggle('collapsed');
-                sb.classList.toggle('w-64');
-                sb.classList.toggle('w-20');
-            } else {
-                toggleMobileSidebar();
-            }
-        }
-
-        function renderSuggested() {
-            const g = document.getElementById('suggested-grid'); g.innerHTML = '';
-            db.courses.forEach(c => {
-                const owned = state.user.myCourses.includes(c.id);
-                const btnKey = owned ? 'enrolled' : 'buyBtn';
-                const btnStyle = owned ? 'bg-black/10 cursor-not-allowed opacity-70' : 'bg-customPrimary hover:opacity-90 shadow-lg hover:-translate-y-1 transform transition-all';
-                g.innerHTML += `
-                    <div class="bg-customCard p-5 rounded-2xl border border-slate-200/20 shadow-sm flex flex-col justify-between text-center relative overflow-hidden group">
-                        <div class="absolute inset-0 bg-gradient-to-b from-customPrimary/5 to-transparent"></div>
-                        <img src="${c.logo}" class="w-16 h-16 mx-auto mb-4 relative z-10 group-hover:scale-110 transition-transform">
-                        <h3 class="text-xl font-bold mb-1 relative z-10" dir="ltr">${c.name}</h3>
-                        <p class="text-xs opacity-70 mb-4 relative z-10">${c.desc}</p>
-                        <div class="flex items-center justify-between mt-auto relative z-10">
-                            <span class="font-black text-lg text-customPrimary">${c.price} ${i18n[state.lang].currency}</span>
-                            <button onclick="${owned ? '' : `buyCourse('${c.id}', ${c.price})`}" class="px-5 py-2 rounded-xl text-white font-bold text-sm ${btnStyle}">${i18n[state.lang][btnKey]}</button>
-                        </div>
-                    </div>`;
-            });
-        }
-
-        function buyCourse(id, price) {
-            if(!state.user.isLoggedIn) return showToast('loginReq', true);
-            if(state.user.wallet < price) return showToast('noMoney', true);
-            state.user.wallet -= price; state.user.myCourses.push(id);
-            if (!state.user.finishedLectures[id]) state.user.finishedLectures[id] = [];
-            updateWalletUI(); renderSuggested(); renderMyCourses();
-            showToast('successBuy');
-            logActivity((state.lang==='ar'?'اشتريت كورس ':'Bought course ') + (db.courses.find(c=>c.id===id)?.name||id), 'fa-shopping-cart', 'text-green-500');
-        }
-
-        function renderMyCourses() {
-            const g = document.getElementById('my-courses-grid'); const e = document.getElementById('my-courses-empty');
-            if(state.user.myCourses.length === 0) { g.classList.add('hidden'); e.classList.remove('hidden'); return; }
-            e.classList.add('hidden'); g.classList.remove('hidden'); g.innerHTML = '';
-            state.user.myCourses.forEach(id => {
-                const c = db.courses.find(x=>x.id===id);
-                g.innerHTML += `
-                    <div onclick="openCourse('${id}')" class="bg-customCard p-5 rounded-2xl border border-slate-200/20 shadow-sm cursor-pointer hover:border-customPrimary hover:shadow-lg transition-all group flex items-center gap-4">
-                        <img src="${c.logo}" class="w-12 h-12 object-contain group-hover:scale-110 transition-transform">
-                        <div><h3 class="font-bold text-lg" dir="ltr">${c.name}</h3><p class="text-xs text-customPrimary font-bold opacity-80 mt-1">ابدأ التعلم <i class="fas fa-play text-[10px]"></i></p></div>
-                    </div>`;
-            });
-        }
-
-        // Homework questions per course lecture (2 questions)
-        const lectureHW = {
-            c_html: {
-                1: [
-                    { q: 'عايزين نكتب أكبر عنوان ظاهر جوه صفحة الويب. أنهي وسم HTML نستخدم؟', opts: ['h6 — عنوان صغير', 'h1 — أكبر عنوان', 'title — عنوان التبويب فقط', 'header — منطقة رأس الصفحة'], c: 1 },
-                    { q: 'وسم title بيظهر في تبويب المتصفح. المفروض نحطه فين في الكود؟', opts: ['جوه body', 'جوه head', 'بعد إغلاق html', 'قبل DOCTYPE'], c: 1 }
-                ],
-                2: [
-                    { q: 'عايزين نحدد جزء من الصفحة كمحتوى مستقل (زي مقال). أنهي وسم دلالي؟', opts: ['div — حاوية عادية', 'span — نص مضمّن', 'article — محتوى مستقل', 'p — فقرة فقط'], c: 2 },
-                    { q: 'عايزين نعمل شريط روابط للتنقل بين صفحات الموقع. أنهي وسم؟', opts: ['menu', 'nav', 'links', 'ul لوحده من غير nav'], c: 1 }
-                ],
-                3: [
-                    { q: 'في فورم تسجيل مستخدم، حقل الإيميل المفروض type بتاعه يكون إيه؟', opts: ['text', 'email', 'mail', 'string'], c: 1 },
-                    { q: 'عايزين نعرض صورة من رابط على الصفحة. أنهي وسم؟', opts: ['image', 'img', 'pic', 'photo'], c: 1 }
-                ]
-            },
-            c_css: {
-                1: [
-                    { q: 'عنصر عليه class اسمه card. إزاي نحدده صح في ملف CSS؟', opts: ['#card', '.card', 'card', '*card'], c: 1 },
-                    { q: 'عايزين نخلي لون الكتابة أزرق. أنهي خاصية CSS؟', opts: ['font-color', 'text-color', 'color', 'fg-color'], c: 2 }
-                ],
-                2: [
-                    { q: 'عايزين مسافة جوّه العنصر (بين المحتوى والحد). نستخدم أنهي خاصية؟', opts: ['margin', 'padding', 'border', 'gap'], c: 1 },
-                    { q: 'عايزين مسافة برّه العنصر تفصله عن العناصر اللي حواليه. نستخدم؟', opts: ['padding', 'margin', 'outline', 'width'], c: 1 }
-                ],
-                3: [
-                    { q: 'لما نكتب display: flex العناصر بتتوزع إزاي افتراضيًا؟', opts: ['عمودي تحت بعض', 'في صف أفقي', 'بتختفي', 'فوق بعض بشكل مطلق'], c: 1 },
-                    { q: 'عايزين نوزّع عناصر الـ Flex أفقيًا (يمين وشمال). نستخدم؟', opts: ['align-items', 'justify-content', 'flex-direction', 'order'], c: 1 }
-                ]
-            },
-            c_js: {
-                1: [
-                    { q: 'عايزين متغير قيمته ثابتة ومش هتتغير بعد التعريف. نستخدم؟', opts: ['var', 'let', 'const', 'static'], c: 2 },
-                    { q: 'لو كتبنا typeof "مرحبا" في JavaScript، النتيجة هتبقى؟', opts: ['text', 'string', 'str', 'char'], c: 1 }
-                ],
-                2: [
-                    { q: 'عايزين نمسك عنصر الـ id بتاعه btn من الصفحة. أنهي طريقة؟', opts: ['querySelector فقط', 'getElementById("btn")', 'getById("btn")', 'find("btn")'], c: 1 },
-                    { q: 'عايزين ننفّذ كود لما المستخدم يدوس على زرار. نستخدم؟', opts: ['setStyle()', 'addEventListener("click", ...)', 'createElement()', 'remove()'], c: 1 }
-                ],
-                3: [
-                    { q: 'عندنا مصفوفة names وعايزين نضيف اسم في آخرها. نستخدم؟', opts: ['names.add("Ali")', 'names.push("Ali")', 'names.append("Ali")', 'names.insert("Ali")'], c: 1 },
-                    { q: 'إيه الفرق الصحيح بين == و === في JavaScript؟', opts: ['مفيش فرق خالص', '=== يقارن القيمة ونوع البيانات', '== أسرع بس', '=== للنصوص فقط'], c: 1 }
-                ]
-            }
+    if (navEl) {
+        document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+        navEl.classList.add('active');
+    } else {
+        // Try to highlight matching nav
+        const map = {
+            'dashboard-view': 'nav-dashboard',
+            'my-courses-view': null,
+            'suggested-courses-view': null,
+            'library-view': null,
+            'records-view': null,
+            'stats-view': null,
+            'community-view': null,
+            'inst-courses-view': null,
+            'inst-students-view': null,
+            'inst-messages-view': null,
+            'wallet-view': null
         };
+    }
 
-        function hwKey() { return state.currentCourseId + '_lec' + state.currentLectureIndex; }
+    if (window.innerWidth < 1024) closeMobileSidebar();
+    const scrollArea = document.getElementById('main-scroll-area');
+    if (scrollArea) scrollArea.scrollTo(0, 0);
 
-        function openCourse(id) {
-            state.currentCourseId = id;
-            const c = db.courses.find(x => x.id === id);
-            document.getElementById('detail-course-title').innerText = c.name;
-            document.getElementById('detail-course-img').src = c.logo;
-            const finished = state.user.finishedLectures[id] || [];
-            let list = '';
-            for (let i = 1; i <= 3; i++) {
-                const isDone = finished.includes(i);
-                list += `
-                    <div onclick="startLec(${i})" class="flex items-center justify-between p-4 rounded-xl border border-slate-200/20 bg-black/5 hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer transition-colors">
-                        <div class="flex items-center gap-3 font-bold">
-                            <div class="w-8 h-8 rounded ${isDone ? 'bg-green-500 text-white' : 'bg-customPrimary/20 text-customPrimary'} flex items-center justify-center">
-                                ${isDone ? '<i class="fas fa-check text-sm"></i>' : i}
+    // Special renders
+    if (id === 'inst-courses-view') renderInstCourses();
+    if (id === 'inst-students-view') renderStudents();
+    if (id === 'community-view') renderCommunity();
+    if (id === 'records-view') renderRecords();
+    if (id === 'stats-view') renderStats();
+    if (id === 'my-courses-view') renderMyCourses();
+    if (id === 'suggested-courses-view') renderSuggested();
+    if (id === 'library-view') { populateLibFaculties(); updateLibFormFields(); renderLibrary(); }
+    if (id === 'inst-messages-view') renderDMStudents();
+}
+
+function goToDashboard() {
+    switchView('dashboard-view', document.getElementById('nav-dashboard'));
+}
+
+function openModal(id) {
+    const m = document.getElementById(id);
+    if (m) {
+        m.classList.remove('opacity-0', 'pointer-events-none');
+    }
+}
+function closeModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.classList.add('opacity-0', 'pointer-events-none');
+}
+
+function toggleMobileSidebar() {
+    const sb = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    sb.classList.toggle('mobile-closed');
+    overlay.classList.toggle('active');
+}
+function closeMobileSidebar() {
+    document.getElementById('sidebar').classList.add('mobile-closed');
+    document.getElementById('sidebar-overlay').classList.remove('active');
+}
+
+function toggleSidebarCollapse() {
+    // Only on desktop
+    if (window.innerWidth < 1024) {
+        toggleMobileSidebar();
+        return;
+    }
+    const sb = document.getElementById('sidebar');
+    state.sidebarCollapsed = !state.sidebarCollapsed;
+    sb.classList.toggle('collapsed', state.sidebarCollapsed);
+}
+
+function toggleUserMenu() {
+    document.getElementById('user-dropdown').classList.toggle('hidden');
+}
+function closeUserMenu() {
+    document.getElementById('user-dropdown').classList.add('hidden');
+}
+function openRegister() {
+    closeModal('login-modal');
+    setTimeout(() => openModal('reg-modal'), 280);
+}
+
+function clearNavActive() {
+    document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+}
+
+// ==================== REGISTRATION FORM LOGIC ====================
+function updateRegFormFields() {
+    const level = document.getElementById('reg-level')?.value || 'high';
+    const parentWrap = document.getElementById('reg-parent-wrap');
+    const facultyWrap = document.getElementById('reg-faculty-wrap');
+    const yearSelect = document.getElementById('reg-year');
+
+    if (parentWrap) parentWrap.classList.toggle('hidden', level === 'univ');
+    if (facultyWrap) facultyWrap.classList.toggle('hidden', level !== 'univ');
+
+    // Rebuild year options
+    if (!yearSelect) return;
+    yearSelect.innerHTML = '';
+    let maxYear = 3;
+    if (level === 'univ') {
+        const fid = document.getElementById('reg-faculty')?.value || 'cs';
+        const fac = FACULTIES.find(f => f.id === fid);
+        maxYear = fac ? fac.years : 4;
+    }
+    for (let i = 1; i <= maxYear; i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        if (state.lang === 'ar') {
+            opt.textContent = (level === 'univ' ? 'الفرقة ' : 'الصف ') + (['الأول','الثاني','الثالث','الرابع','الخامس','السادس','السابع'][i-1] || i);
+        } else {
+            opt.textContent = 'Year ' + i;
+        }
+        yearSelect.appendChild(opt);
+    }
+}
+
+function populateFaculties() {
+    const sel = document.getElementById('reg-faculty');
+    if (!sel) return;
+    sel.innerHTML = FACULTIES.map(f => 
+        `<option value="${f.id}">${state.lang === 'ar' ? f.nameAr : f.nameEn} (${f.years})</option>`
+    ).join('');
+}
+
+// ==================== AUTH ====================
+
+function isValidFullName(name) {
+    // رباعي = 4 أجزاء على الأقل (3 مسافات)
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    return parts.length >= 4;
+}
+function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+function isValidEgyptianPhone(phone) {
+    const p = phone.replace(/\s+/g, '');
+    return /^01[0125][0-9]{8}$/.test(p); // 11 digits starting 010/011/012/015
+}
+
+function performAuth(type) {
+    // ========== DEMO MODE (when Firebase keys not set) ==========
+    if (!window.firebaseApp) {
+        if (type === 'register') {
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const pass = document.getElementById('reg-pass').value;
+            const phone = document.getElementById('reg-phone')?.value.trim() || '';
+            const level = document.getElementById('reg-level').value;
+            const year = document.getElementById('reg-year')?.value || '1';
+            const parentPhone = document.getElementById('reg-parent')?.value.trim() || '';
+            const faculty = level === 'univ' ? (document.getElementById('reg-faculty')?.value || '') : '';
+
+            if (!name || !email || !pass)
+                return showToast(state.lang === 'ar' ? 'يرجى ملء الحقول الأساسية' : 'Fill required fields', true);
+            if (!isValidFullName(name))
+                return showToast(state.lang === 'ar' ? 'الاسم يجب أن يكون رباعي (4 أسماء مفصولة بمسافات)' : 'Full name must be 4 parts', true);
+            if (!isValidEmail(email))
+                return showToast(state.lang === 'ar' ? 'البريد الإلكتروني غير صحيح' : 'Invalid email', true);
+            if (pass.length < 6)
+                return showToast(state.lang === 'ar' ? 'كلمة المرور 6 أحرف على الأقل' : 'Password min 6 chars', true);
+            if (phone && !isValidEgyptianPhone(phone))
+                return showToast(state.lang === 'ar' ? 'رقم الموبايل يجب أن يكون 11 رقم ويبدأ بـ 010/011/012/015' : 'Phone must be 11 digits (01x)', true);
+            if (level !== 'univ') {
+                if (!parentPhone)
+                    return showToast(state.lang === 'ar' ? 'رقم ولي الأمر مطلوب' : 'Parent phone required', true);
+                if (!isValidEgyptianPhone(parentPhone))
+                    return showToast(state.lang === 'ar' ? 'رقم ولي الأمر غير صحيح (11 رقم)' : 'Invalid parent phone', true);
+            }
+            if (level === 'univ' && !faculty)
+                return showToast(state.lang === 'ar' ? 'اختر الكلية' : 'Select faculty', true);
+
+            db.students.push({
+                id: 's_' + Date.now(), name, email, pass, level, year, faculty,
+                parentPhone: level === 'univ' ? '' : parentPhone, phone,
+                joined: new Date().toISOString().slice(0, 10)
+            });
+            saveToStorage();
+            handleSuccessfulLogin('student', name, email, { level, year, faculty, parentPhone, phone });
+            closeModal('reg-modal');
+            showToast(state.lang === 'ar' ? 'تم إنشاء الحساب (وضع تجريبي)' : 'Account created (demo mode)');
+            return;
+        }
+
+        // Login demo – only registered accounts or teacher
+        const email = document.getElementById('login-user').value.trim();
+        const pass = document.getElementById('login-pass').value;
+        if (!email || !pass)
+            return showToast(state.lang === 'ar' ? 'أدخل البريد وكلمة المرور' : 'Enter email & password', true);
+
+        // Teacher demo credentials
+        if (email === 'admin@fikra.com' && pass === 'admin123') {
+            handleSuccessfulLogin('teacher', state.lang === 'ar' ? 'المعلم (أدمن)' : 'Admin Teacher', email);
+            closeModal('login-modal');
+            return;
+        }
+
+        // Student must have registered before
+        const existing = db.students.find(s => s.email.toLowerCase() === email.toLowerCase());
+        if (!existing) {
+            return showToast(state.lang === 'ar'
+                ? 'لا يوجد حساب بهذا البريد. أنشئ حساباً أولاً من التسجيل.'
+                : 'No account found. Please register first.', true);
+        }
+        // Simple password check in demo (stored on register if we add it)
+        if (existing.pass && existing.pass !== pass) {
+            return showToast(state.lang === 'ar' ? 'كلمة المرور غير صحيحة' : 'Wrong password', true);
+        }
+        handleSuccessfulLogin('student', existing.name, email, existing);
+        closeModal('login-modal');
+        return;
+    }
+
+    // ========== REAL FIREBASE ==========
+    if (type === 'register') {
+        const email = document.getElementById('reg-email').value.trim();
+        const pass = document.getElementById('reg-pass').value;
+        const name = document.getElementById('reg-name').value.trim();
+        const phone = document.getElementById('reg-phone')?.value.trim() || '';
+        const level = document.getElementById('reg-level').value;
+        const year = document.getElementById('reg-year')?.value || '1';
+        const parentPhone = document.getElementById('reg-parent')?.value.trim() || '';
+        const faculty = level === 'univ' ? (document.getElementById('reg-faculty')?.value || '') : '';
+
+        if (!email || !pass || !name)
+            return showToast(state.lang === 'ar' ? 'يرجى ملء الحقول الأساسية' : 'Fill required fields', true);
+        if (!isValidFullName(name))
+            return showToast(state.lang === 'ar' ? 'الاسم يجب أن يكون رباعي (4 أسماء)' : 'Full name must be 4 parts', true);
+        if (!isValidEmail(email))
+            return showToast(state.lang === 'ar' ? 'البريد الإلكتروني غير صحيح' : 'Invalid email', true);
+        if (pass.length < 6)
+            return showToast(state.lang === 'ar' ? 'كلمة المرور 6 أحرف على الأقل' : 'Password min 6 chars', true);
+        if (phone && !isValidEgyptianPhone(phone))
+            return showToast(state.lang === 'ar' ? 'رقم الموبايل 11 رقم (010/011/012/015)' : 'Invalid phone', true);
+        if (level !== 'univ') {
+            if (!parentPhone) return showToast(state.lang === 'ar' ? 'رقم ولي الأمر مطلوب' : 'Parent phone required', true);
+            if (!isValidEgyptianPhone(parentPhone)) return showToast(state.lang === 'ar' ? 'رقم ولي الأمر غير صحيح' : 'Invalid parent phone', true);
+        }
+        if (level === 'univ' && !faculty)
+            return showToast(state.lang === 'ar' ? 'اختر الكلية' : 'Select faculty', true);
+
+        firebase.auth().createUserWithEmailAndPassword(email, pass)
+            .then((cred) => {
+                const data = {
+                    name, email, role: 'student', level, year, phone,
+                    parentPhone: level === 'univ' ? '' : parentPhone,
+                    faculty: faculty || '',
+                    wallet: 0, myCourses: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                return firebase.firestore().collection('users').doc(cred.user.uid).set(data).then(() => data);
+            })
+            .then((data) => {
+                handleSuccessfulLogin('student', name, email, data);
+                closeModal('reg-modal');
+                showToast(state.lang === 'ar' ? 'تم إنشاء الحساب بنجاح!' : 'Account created!');
+            })
+            .catch(err => showToast(err.message || 'Error', true));
+
+    } else {
+        const email = document.getElementById('login-user').value.trim();
+        const pass = document.getElementById('login-pass').value;
+        if (!email || !pass)
+            return showToast(state.lang === 'ar' ? 'أدخل البريد وكلمة المرور' : 'Enter email & password', true);
+
+        firebase.auth().signInWithEmailAndPassword(email, pass)
+            .then(() => closeModal('login-modal'))
+            .catch(err => {
+                let msg = err.message;
+                if (['auth/user-not-found','auth/wrong-password','auth/invalid-credential','auth/invalid-email'].includes(err.code)) {
+                    msg = state.lang === 'ar' ? 'بيانات الدخول غير صحيحة أو الحساب غير موجود' : 'Invalid credentials or account not found';
+                }
+                showToast(msg, true);
+            });
+    }
+}
+
+function handleSuccessfulLogin(role, name, email, extra = {}) {
+    state.user.isLoggedIn = true;
+    state.user.role = role;
+    state.user.name = name;
+    state.user.email = email;
+    state.user.level = extra.level || '';
+    state.user.year = extra.year || '';
+    state.user.faculty = extra.faculty || '';
+    state.user.studentId = extra.studentId || '';
+    state.user.parentPhone = extra.parentPhone || '';
+    state.user.ownedBooks = extra.ownedBooks || [];
+    if (typeof extra.wallet === 'number') state.user.wallet = extra.wallet;
+
+    // Transition
+    const landing = document.getElementById('landing-page');
+    landing.style.opacity = '0';
+    setTimeout(() => {
+        landing.classList.add('hidden');
+        const app = document.getElementById('app-wrapper');
+        app.classList.remove('hidden');
+        app.style.opacity = '0';
+        setTimeout(() => app.style.opacity = '1', 40);
+    }, 400);
+
+    document.getElementById('dropdown-name').innerText = name;
+    const welcomeEl = document.getElementById('welcome-title');
+    if (welcomeEl) {
+        welcomeEl.innerText = role === 'teacher'
+            ? `${t('teacherWelcome')} ${name}`
+            : `${t('studentWelcome')} ${name}!`;
+    }
+
+    applyPermissions();
+    addActivity(role === 'teacher' ? (state.lang==='ar'?'تم تسجيل دخول المعلم':'Teacher logged in') : (state.lang==='ar'?'تم تسجيل الدخول':'Logged in'));
+    saveToStorage();
+    showToast(state.lang === 'ar' ? 'تم تسجيل الدخول بنجاح!' : 'Logged in successfully!');
+}
+
+
+function resetUserState() {
+    state.user = {
+        isLoggedIn: false, role: 'student', name: '', email: '', wallet: 0,
+        myCourses: [], completedHW: {}, finishedLectures: {}, passedExams: {},
+        quizScores: {}, watchHistory: [], hwGrades: {}, solutionUnlocked: {},
+        activity: [], joinedCommunity: false,
+        studentId: '', parentPhone: '',
+        level: '', year: '', faculty: '', ownedBooks: []
+    };
+    state.currentCourseId = null;
+    state.currentLectureIndex = 0;
+}
+
+function performLogout() {
+    if (window.firebaseApp) firebase.auth().signOut();
+    clearSessionKeepData();
+    updateWalletUI();
+    closeUserMenu();
+
+    const app = document.getElementById('app-wrapper');
+    app.style.opacity = '0';
+    setTimeout(() => {
+        app.classList.add('hidden');
+        const landing = document.getElementById('landing-page');
+        landing.classList.remove('hidden');
+        landing.style.opacity = '0';
+        setTimeout(() => landing.style.opacity = '1', 40);
+    }, 400);
+    showToast(state.lang === 'ar' ? 'تم تسجيل الخروج' : 'Logged out');
+}
+
+function applyPermissions() {
+    const isTeacher = state.user.role === 'teacher';
+    document.querySelectorAll('.teacher-only').forEach(el => {
+        el.classList.toggle('hidden', !isTeacher);
+    });
+    // Kick student from teacher views
+    const active = document.querySelector('.view-section.active');
+    if (active && active.classList.contains('teacher-only') && !isTeacher) {
+        goToDashboard();
+    }
+}
+
+// ==================== WALLET ====================
+function updateWalletUI() {
+    const bal = state.user.wallet;
+    const el1 = document.getElementById('wallet-balance');
+    const el2 = document.getElementById('wallet-large-balance');
+    if (el1) el1.innerText = `${bal} EGP`;
+    if (el2) el2.innerText = bal;
+}
+
+function testCharge() {
+    state.user.wallet += 500;
+    updateWalletUI();
+    saveToStorage();
+    addActivity('شحن تجريبي +500 EGP');
+    showToast(state.lang === 'ar' ? 'تم الشحن التجريبي بنجاح!' : 'Test charge successful!');
+}
+
+function openPayment(method) {
+    state.payMethod = method;
+    const panel = document.getElementById('payment-panel');
+    if (!panel) return;
+    panel.classList.remove('hidden');
+    document.getElementById('pay-method-title').textContent = method === 'instant' ? t('instantPay') : t('vodafoneCash');
+    document.getElementById('pay-phone-wrap').classList.toggle('hidden', method === 'instant');
+    document.getElementById('pay-code-wrap').classList.toggle('hidden', method !== 'instant');
+    if (method === 'instant') {
+        const code = String(Math.floor(100000 + Math.random() * 900000));
+        const codeEl = document.getElementById('pay-code');
+        if (codeEl) codeEl.value = code;
+    }
+}
+
+function confirmPayment() {
+    const amount = parseInt(document.getElementById('pay-amount')?.value || '100', 10);
+    if (isNaN(amount) || amount < 10) return showToast(state.lang === 'ar' ? 'أدخل مبلغ صحيح' : 'Enter valid amount', true);
+
+    if (state.payMethod === 'vodafone') {
+        const phone = document.getElementById('pay-phone')?.value.trim();
+        if (!phone || phone.length < 10) return showToast(state.lang === 'ar' ? 'أدخل رقم صحيح' : 'Enter valid phone', true);
+    }
+
+    // Simulate success
+    state.user.wallet += amount;
+    updateWalletUI();
+    saveToStorage();
+    addActivity(`شحن ${amount} EGP عبر ${state.payMethod === 'instant' ? 'فوري' : 'فودافون كاش'}`);
+    showToast(state.lang === 'ar' ? `تم شحن ${amount} EGP بنجاح!` : `Successfully charged ${amount} EGP!`);
+    document.getElementById('payment-panel').classList.add('hidden');
+}
+
+// ==================== COURSES (Student) ====================
+function renderSuggested() {
+    const g = document.getElementById('suggested-grid');
+    if (!g) return;
+    g.innerHTML = '';
+    db.courses.forEach(c => {
+        const owned = state.user.myCourses.includes(c.id);
+        const btnText = owned ? t('owned') : t('buyCourse');
+        const btnStyle = owned
+            ? 'bg-black/10 cursor-not-allowed opacity-70'
+            : 'bg-customPrimary hover:opacity-90 shadow-lg hover:-translate-y-1 transform transition-all';
+        const logoHtml = c.logo
+            ? `<img src="${c.logo}" class="w-16 h-16 mx-auto mb-4 relative z-10 group-hover:scale-110 transition-transform object-contain" alt="">`
+            : `<div class="w-16 h-16 mx-auto mb-4 relative z-10 rounded-xl bg-customPrimary/15 flex items-center justify-center text-2xl font-black text-customPrimary">${(c.name || 'C')[0]}</div>`;
+
+        g.innerHTML += `
+            <div class="bg-customCard p-5 rounded-2xl border border-slate-200/20 shadow-sm flex flex-col justify-between text-center relative overflow-hidden group">
+                <div class="absolute inset-0 bg-gradient-to-b from-customPrimary/5 to-transparent"></div>
+                ${logoHtml}
+                <h3 class="text-xl font-bold mb-1 relative z-10" dir="ltr">${c.name}</h3>
+                <p class="text-xs opacity-70 mb-4 relative z-10">${c.desc || ''}</p>
+                <div class="flex items-center justify-between mt-auto relative z-10">
+                    <span class="font-black text-lg text-customPrimary">${c.price} EGP</span>
+                    <button onclick="${owned ? '' : `buyCourse('${c.id}', ${c.price})`}" class="px-5 py-2 rounded-xl text-white font-bold text-sm ${btnStyle}">${btnText}</button>
+                </div>
+            </div>`;
+    });
+}
+
+function buyCourse(id, price) {
+    if (state.user.wallet < price) return showToast(state.lang === 'ar' ? 'الرصيد غير كافٍ! اشحن محفظتك.' : 'Insufficient balance!', true);
+    state.user.wallet -= price;
+    state.user.myCourses.push(id);
+    updateWalletUI();
+    renderSuggested();
+    renderMyCourses();
+    addActivity(`تم شراء كورس: ${db.courses.find(c => c.id === id)?.name || id}`);
+    showToast(state.lang === 'ar' ? 'تم الشراء بنجاح!' : 'Purchase successful!');
+    saveToStorage();
+}
+
+function renderMyCourses() {
+    const g = document.getElementById('my-courses-grid');
+    const e = document.getElementById('my-courses-empty');
+    if (!g) return;
+    if (state.user.myCourses.length === 0) {
+        g.classList.add('hidden');
+        if (e) e.classList.remove('hidden');
+        return;
+    }
+    if (e) e.classList.add('hidden');
+    g.classList.remove('hidden');
+    g.innerHTML = '';
+    state.user.myCourses.forEach(id => {
+        const c = db.courses.find(x => x.id === id);
+        if (!c) return;
+        const logoHtml = c.logo
+            ? `<img src="${c.logo}" class="w-12 h-12 object-contain group-hover:scale-110 transition-transform">`
+            : `<div class="w-12 h-12 rounded-lg bg-customPrimary/15 flex items-center justify-center font-black text-customPrimary">${c.name[0]}</div>`;
+        g.innerHTML += `
+            <div onclick="openCourse('${id}')" class="bg-customCard p-5 rounded-2xl border border-slate-200/20 shadow-sm cursor-pointer hover:border-customPrimary hover:shadow-lg transition-all group flex items-center gap-4">
+                ${logoHtml}
+                <div>
+                    <h3 class="font-bold text-lg" dir="ltr">${c.name}</h3>
+                    <p class="text-xs text-customPrimary font-bold opacity-80 mt-1">${state.lang === 'ar' ? 'ابدأ التعلم' : 'Start learning'} <i class="fas fa-play text-[10px]"></i></p>
+                </div>
+            </div>`;
+    });
+}
+
+function openCourse(id) {
+    state.currentCourseId = id;
+    const c = db.courses.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('detail-course-title').innerText = c.name;
+    const imgEl = document.getElementById('detail-course-img');
+    if (c.logo) {
+        imgEl.src = c.logo;
+        imgEl.classList.remove('hidden');
+    } else {
+        imgEl.classList.add('hidden');
+    }
+
+    let list = '';
+    const lessons = c.lessons || [];
+    if (lessons.length === 0) {
+        list = `<p class="text-center opacity-60 py-8">${state.lang === 'ar' ? 'لا توجد دروس بعد' : 'No lessons yet'}</p>`;
+    } else {
+        lessons.forEach((lec, i) => {
+            list += `
+                <div onclick="startLec(${i})" class="flex items-center justify-between p-4 rounded-xl border border-slate-200/20 bg-black/5 hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer transition-colors">
+                    <div class="flex items-center gap-3 font-bold">
+                        <div class="w-8 h-8 rounded bg-customPrimary/20 text-customPrimary flex items-center justify-center">${i + 1}</div>
+                        <span>${lec.title || (state.lang === 'ar' ? 'درس ' + (i + 1) : 'Lesson ' + (i + 1))}</span>
+                    </div>
+                    <i class="fas fa-play text-customPrimary/50"></i>
+                </div>`;
+        });
+    }
+    document.getElementById('lectures-list').innerHTML = list;
+    switchView('course-details-view');
+}
+
+function startLec(index) {
+    state.currentLectureIndex = index;
+    const c = db.courses.find(x => x.id === state.currentCourseId);
+    const lec = c?.lessons?.[index];
+    document.getElementById('current-lecture-title').innerText = lec?.title || `الدرس ${index + 1}`;
+    switchLectureTab('video');
+    // Reset HW UI
+    document.getElementById('hw-intro')?.classList.remove('hidden');
+    document.getElementById('hw-solve')?.classList.add('hidden');
+    document.getElementById('hw-result')?.classList.add('hidden');
+    switchView('lecture-view');
+}
+
+function backToCourseDetails() {
+    openCourse(state.currentCourseId);
+}
+
+function switchLectureTab(id) {
+    document.querySelectorAll('#lecture-view .interactive-card').forEach(c => {
+        c.classList.remove('active-tab', 'border-customPrimary');
+        c.classList.add('border-transparent');
+    });
+    document.querySelectorAll('#lecture-view .tab-content').forEach(c => {
+        c.classList.add('hidden');
+        c.classList.remove('flex');
+    });
+    const tb = document.getElementById('tab-' + id);
+    if (tb) {
+        tb.classList.add('active-tab');
+        tb.classList.replace('border-transparent', 'border-customPrimary');
+    }
+    const ct = document.getElementById('content-' + id);
+    if (ct) {
+        ct.classList.remove('hidden');
+        if (id !== 'hw') ct.classList.add('flex');
+    }
+    state.currentLectureTab = id;
+
+    // Solution lock check
+    if (id === 'solution') {
+        const key = `${state.currentCourseId}_${state.currentLectureIndex}`;
+        const unlocked = !!state.user.solutionUnlocked[key];
+        const lockedEl = document.getElementById('solution-locked');
+        const videoEl = document.getElementById('solution-video');
+        if (lockedEl && videoEl) {
+            if (unlocked) {
+                lockedEl.classList.add('hidden');
+                videoEl.classList.remove('hidden');
+            } else {
+                lockedEl.classList.remove('hidden');
+                videoEl.classList.add('hidden');
+            }
+        }
+    }
+}
+
+function nextLecture() {
+    const c = db.courses.find(x => x.id === state.currentCourseId);
+    if (!c || !c.lessons) return;
+    if (state.currentLectureIndex < c.lessons.length - 1) {
+        startLec(state.currentLectureIndex + 1);
+    } else {
+        showToast(state.lang === 'ar' ? 'هذا آخر درس' : 'This is the last lesson');
+    }
+}
+
+function finishLecture() {
+    const key = `${state.currentCourseId}_${state.currentLectureIndex}`;
+    state.user.finishedLectures[key] = true;
+    state.user.watchHistory.push({
+        courseId: state.currentCourseId,
+        lesson: state.currentLectureIndex,
+        title: document.getElementById('current-lecture-title')?.innerText,
+        time: new Date().toLocaleString()
+    });
+    addActivity(`أنهى محاضرة: ${document.getElementById('current-lecture-title')?.innerText}`);
+    showToast(state.lang === 'ar' ? 'تم إنهاء الدرس بنجاح!' : 'Lecture finished!');
+    backToCourseDetails();
+}
+
+// ==================== HOMEWORK SOLVING ====================
+let hwState = { questions: [], current: 0, answers: {} };
+
+function startHWSolve() {
+    const c = db.courses.find(x => x.id === state.currentCourseId);
+    const lec = c?.lessons?.[state.currentLectureIndex];
+    const qs = lec?.questions || [];
+    if (qs.length === 0) {
+        showToast(state.lang === 'ar' ? 'لا يوجد واجب لهذا الدرس' : 'No homework for this lesson', true);
+        return;
+    }
+    hwState = { questions: qs, current: 0, answers: {} };
+    document.getElementById('hw-intro').classList.add('hidden');
+    document.getElementById('hw-solve').classList.remove('hidden');
+    document.getElementById('hw-result').classList.add('hidden');
+    renderHWQuestion();
+}
+
+function renderHWQuestion() {
+    const q = hwState.questions[hwState.current];
+    if (!q) return;
+    document.getElementById('hw-q-counter').textContent = `${state.lang === 'ar' ? 'السؤال' : 'Question'} ${hwState.current + 1} / ${hwState.questions.length}`;
+    document.getElementById('hw-q-text').textContent = q.text;
+    const opts = document.getElementById('hw-opts');
+    opts.innerHTML = '';
+    q.options.forEach((opt, i) => {
+        const selected = hwState.answers[hwState.current] === i;
+        opts.innerHTML += `
+            <button onclick="selectHWOption(${i})" class="hw-option w-full text-start p-3 rounded-xl border border-slate-200/30 hover:border-customPrimary transition-all ${selected ? 'selected' : ''}">
+                <span class="font-bold me-2">${String.fromCharCode(65 + i)}.</span> ${opt}
+            </button>`;
+    });
+    document.getElementById('hw-prev-btn').disabled = hwState.current === 0;
+    const nextBtn = document.getElementById('hw-next-btn');
+    nextBtn.textContent = hwState.current === hwState.questions.length - 1 ? t('submitHW') : t('next');
+}
+
+function selectHWOption(i) {
+    hwState.answers[hwState.current] = i;
+    renderHWQuestion();
+}
+
+function hwPrevQ() {
+    if (hwState.current > 0) {
+        hwState.current--;
+        renderHWQuestion();
+    }
+}
+
+function hwNextQ() {
+    if (hwState.answers[hwState.current] === undefined) {
+        return showToast(state.lang === 'ar' ? 'اختر إجابة أولاً' : 'Select an answer first', true);
+    }
+    if (hwState.current < hwState.questions.length - 1) {
+        hwState.current++;
+        renderHWQuestion();
+    } else {
+        // Submit
+        let correct = 0;
+        hwState.questions.forEach((q, i) => {
+            if (hwState.answers[i] === q.correct) correct++;
+        });
+        const score = `${correct}/${hwState.questions.length}`;
+        const key = `${state.currentCourseId}_${state.currentLectureIndex}`;
+        state.user.completedHW[key] = true;
+        state.user.hwGrades[key] = score;
+        state.user.solutionUnlocked[key] = true;
+
+        document.getElementById('hw-solve').classList.add('hidden');
+        document.getElementById('hw-result').classList.remove('hidden');
+        document.getElementById('hw-result-score').textContent = score;
+        addActivity(`حل واجب: ${score}`);
+        showToast(state.lang === 'ar' ? `نتيجتك: ${score}` : `Your score: ${score}`);
+    }
+}
+
+// ==================== COURSE BUILDER (Teacher) ====================
+function renderInstCourses() {
+    const g = document.getElementById('inst-courses-grid');
+    if (!g) return;
+    let html = '';
+    db.courses.forEach(c => {
+        const logoHtml = c.logo
+            ? `<img src="${c.logo}" class="w-16 h-16 mx-auto mb-4 relative z-10 object-contain">`
+            : `<div class="w-16 h-16 mx-auto mb-4 rounded-xl bg-customPrimary/15 flex items-center justify-center text-2xl font-black text-customPrimary">${c.name[0]}</div>`;
+        html += `
+            <div class="bg-customCard p-5 rounded-2xl border border-slate-200/20 shadow-sm flex flex-col justify-between text-center relative overflow-hidden group">
+                ${logoHtml}
+                <h3 class="text-xl font-bold mb-1 relative z-10" dir="ltr">${c.name}</h3>
+                <p class="text-sm opacity-60 mb-2">${c.price} EGP • ${c.lessons?.length || 0} ${state.lang === 'ar' ? 'دروس' : 'lessons'}</p>
+                <button onclick="editCourse('${c.id}')" class="w-full px-4 py-2 bg-customPrimary/10 text-customPrimary hover:bg-customPrimary hover:text-white rounded-xl font-bold text-sm transition-colors mt-auto relative z-10">
+                    ${state.lang === 'ar' ? 'تعديل الكورس' : 'Edit Course'}
+                </button>
+            </div>`;
+    });
+    html += `
+        <div onclick="startNewCourse()" class="p-5 rounded-2xl border-2 border-dashed border-customPrimary flex flex-col items-center justify-center text-center cursor-pointer min-h-[220px] hover:bg-customPrimary/5 transition-colors">
+            <i class="fas fa-plus text-5xl mb-4 text-customPrimary opacity-80"></i>
+            <h3 class="font-bold text-xl text-customPrimary">${t('addCourse')}</h3>
+        </div>`;
+    g.innerHTML = html;
+}
+
+function startNewCourse() {
+    currentBuilderCourseId = null;
+    builderLessons = [];
+    document.getElementById('builder-course-name').value = '';
+    document.getElementById('builder-course-price').value = '100';
+    document.getElementById('builder-course-stage').value = 'high';
+    document.getElementById('builder-course-year').value = '1';
+    document.getElementById('builder-course-image').value = '';
+    document.getElementById('builder-image-preview').innerHTML = '<i class="fas fa-image opacity-50 text-2xl"></i>';
+    renderBuilderLessons();
+    switchView('course-builder-view');
+}
+
+function editCourse(id) {
+    const c = db.courses.find(x => x.id === id);
+    if (!c) return;
+    currentBuilderCourseId = id;
+    builderLessons = JSON.parse(JSON.stringify(c.lessons || []));
+    document.getElementById('builder-course-name').value = c.name;
+    document.getElementById('builder-course-price').value = c.price || 100;
+    document.getElementById('builder-course-stage').value = c.stage || 'high';
+    document.getElementById('builder-course-year').value = c.year || '1';
+    const prev = document.getElementById('builder-image-preview');
+    if (c.logo) {
+        prev.innerHTML = `<img src="${c.logo}" class="w-full h-full object-cover rounded-xl">`;
+    } else {
+        prev.innerHTML = '<i class="fas fa-image opacity-50 text-2xl"></i>';
+    }
+    renderBuilderLessons();
+    switchView('course-builder-view');
+}
+
+function builderAddLesson() {
+    builderLessons.push({
+        title: state.lang === 'ar' ? `الدرس ${builderLessons.length + 1}` : `Lesson ${builderLessons.length + 1}`,
+        isExpanded: true,
+        explainUrl: '',
+        summaryUrl: '',
+        solutionUrl: '',
+        questions: []
+    });
+    renderBuilderLessons();
+}
+
+function builderToggleLesson(index) {
+    builderLessons[index].isExpanded = !builderLessons[index].isExpanded;
+    renderBuilderLessons();
+}
+
+function builderRemoveLesson(index) {
+    if (confirm(state.lang === 'ar' ? 'حذف الدرس؟' : 'Delete lesson?')) {
+        builderLessons.splice(index, 1);
+        renderBuilderLessons();
+    }
+}
+
+function builderAddQuestion(lessonIndex) {
+    const qText = prompt(state.lang === 'ar' ? 'نص السؤال:' : 'Question text:');
+    if (!qText) return;
+    const opts = [];
+    for (let i = 0; i < 4; i++) {
+        const o = prompt(`${state.lang === 'ar' ? 'الاختيار' : 'Option'} ${String.fromCharCode(65 + i)}:`);
+        if (!o) return showToast(state.lang === 'ar' ? 'يجب إدخال 4 اختيارات' : 'Need 4 options', true);
+        opts.push(o);
+    }
+    const correct = parseInt(prompt(state.lang === 'ar' ? 'رقم الإجابة الصحيحة (0-3):' : 'Correct answer index (0-3):'), 10);
+    if (isNaN(correct) || correct < 0 || correct > 3) return showToast('Invalid correct index', true);
+
+    builderLessons[lessonIndex].questions.push({ text: qText, options: opts, correct });
+    builderLessons[lessonIndex].isExpanded = true;
+    renderBuilderLessons();
+    showToast(state.lang === 'ar' ? 'تم إضافة السؤال' : 'Question added');
+}
+
+function renderBuilderLessons() {
+    const container = document.getElementById('builder-lessons-container');
+    if (!container) return;
+    if (builderLessons.length === 0) {
+        container.innerHTML = `<div class="text-center p-6 border-2 border-dashed border-slate-200/30 rounded-xl opacity-60 font-bold text-sm">${t('noLessons')}</div>`;
+        return;
+    }
+
+    container.innerHTML = builderLessons.map((lesson, lIndex) => `
+        <div class="lesson-block bg-black/5 dark:bg-white/5 rounded-xl overflow-hidden transition-all duration-300">
+            <div class="lesson-header flex justify-between items-center p-4 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" onclick="builderToggleLesson(${lIndex})">
+                <div class="flex items-center gap-3 flex-1" onclick="event.stopPropagation()">
+                    <i class="fas fa-chevron-${lesson.isExpanded ? 'up' : 'down'} text-customPrimary opacity-70"></i>
+                    <input type="text" class="bg-transparent border-b border-slate-200/30 focus:border-customPrimary outline-none font-bold w-1/2 md:w-2/5 pb-1" 
+                        value="${lesson.title}" onchange="builderLessons[${lIndex}].title = this.value" onclick="event.stopPropagation()">
+                </div>
+                <div class="flex gap-2" onclick="event.stopPropagation()">
+                    <button onclick="builderAddQuestion(${lIndex})" class="text-xs bg-amber-500 text-white px-3 py-1.5 rounded flex items-center gap-1 hover:bg-amber-600 shadow-sm">
+                        <i class="fas fa-question-circle"></i> <span class="hidden sm:inline">${t('addQuestion')}</span>
+                    </button>
+                    <button onclick="builderRemoveLesson(${lIndex})" class="text-xs bg-red-500/80 text-white px-2 py-1.5 rounded hover:bg-red-600">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="${lesson.isExpanded ? 'block' : 'hidden'} p-4 space-y-4 bg-customCard/40 border-t border-slate-200/10">
+                <!-- 4 content slots -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-bold opacity-70 mb-1 block">${t('videoExplain')}</label>
+                        <input type="text" class="w-full bg-black/5 border border-slate-200/20 rounded-lg px-3 py-2 text-sm outline-none focus:border-customPrimary" 
+                            placeholder="YouTube / Video URL" value="${lesson.explainUrl || ''}" 
+                            onchange="builderLessons[${lIndex}].explainUrl = this.value">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold opacity-70 mb-1 block">${t('videoSummary')}</label>
+                        <input type="text" class="w-full bg-black/5 border border-slate-200/20 rounded-lg px-3 py-2 text-sm outline-none focus:border-customPrimary" 
+                            placeholder="Summary Video / PDF URL" value="${lesson.summaryUrl || ''}" 
+                            onchange="builderLessons[${lIndex}].summaryUrl = this.value">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold opacity-70 mb-1 block">${t('videoSolution')}</label>
+                        <input type="text" class="w-full bg-black/5 border border-slate-200/20 rounded-lg px-3 py-2 text-sm outline-none focus:border-customPrimary" 
+                            placeholder="Solution Video URL" value="${lesson.solutionUrl || ''}" 
+                            onchange="builderLessons[${lIndex}].solutionUrl = this.value">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold opacity-70 mb-1 block">${t('homework')} (${lesson.questions?.length || 0} ${state.lang === 'ar' ? 'أسئلة' : 'Q'})</label>
+                        <button onclick="builderAddQuestion(${lIndex})" class="w-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded-lg px-3 py-2 text-sm font-bold hover:bg-amber-500/25">
+                            <i class="fas fa-plus me-1"></i> ${t('addQuestion')}
+                        </button>
+                    </div>
+                </div>
+                ${lesson.questions && lesson.questions.length > 0 ? `
+                    <div class="space-y-2 mt-2">
+                        <p class="text-xs font-bold opacity-60">${state.lang === 'ar' ? 'الأسئلة المضافة:' : 'Added questions:'}</p>
+                        ${lesson.questions.map((q, qi) => `
+                            <div class="flex justify-between items-center bg-black/5 dark:bg-white/5 rounded-lg px-3 py-2 text-sm">
+                                <span class="truncate flex-1">${qi + 1}. ${q.text}</span>
+                                <button onclick="builderLessons[${lIndex}].questions.splice(${qi},1); renderBuilderLessons();" class="text-red-400 hover:text-red-500 ms-2"><i class="fas fa-times"></i></button>
                             </div>
-                            <span dir="ltr">Lecture ${i}</span>
-                        </div>
-                        <i class="fas ${isDone ? 'fa-check-circle text-green-500' : 'fa-play text-customPrimary/50'}"></i>
-                    </div>`;
-            }
-            document.getElementById('lectures-list').innerHTML = list;
-            switchView('course-details-view');
-        }
+                        `).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `).join('');
+}
 
-        const lectureTabOrder = ['video', 'summary', 'hw', 'solution'];
-
-        function startLec(index) {
-            state.currentLectureIndex = index;
-            state.currentLectureTab = 'video';
-            document.getElementById('current-lecture-title').innerText = `Lecture ${index}`;
-            logActivity(`${i18n[state.lang].openLecLog} ${index}`, 'fa-play-circle', 'text-customPrimary');
-            // لا نسجل المشاهدة هنا — فقط عند الضغط على «التالي»
-            resetHWUI();
-            updateSolutionLock();
-            switchView('lecture-view');
-            switchLectureTab('video', true);
-            updateLectureNavButtons();
-        }
-        function backToCourseDetails() { openCourse(state.currentCourseId); }
-
-        // «التالي» ينقل بالترتيب: فيديو → ملخص → واجب → حل
-        function nextLecture() {
-            const tab = state.currentLectureTab || 'video';
-            const idx = lectureTabOrder.indexOf(tab);
-
-            // من الفيديو إلى الملخص = تسجيل مشاهدة
-            if (tab === 'video') {
-                registerWatchHistory();
-                switchLectureTab('summary', true);
-                updateLectureNavButtons();
-                return;
-            }
-            if (tab === 'summary') {
-                switchLectureTab('hw', true);
-                updateLectureNavButtons();
-                return;
-            }
-            if (tab === 'hw') {
-                const key = hwKey();
-                if (state.user.hwGrades[key] == null) {
-                    showToast(state.lang === 'ar' ? 'سلّم الواجب أولاً قبل الانتقال لحل الواجب' : 'Submit the homework first', true);
-                    return;
-                }
-                switchLectureTab('solution', true);
-                updateLectureNavButtons();
-                return;
-            }
-            if (tab === 'solution') {
-                // بعد الحل: إنهاء المحاضرة (لو الواجب متسلم)
-                finishLecture();
-                return;
-            }
-        }
-
-        function registerWatchHistory() {
-            const cname = db.courses.find(c => c.id === state.currentCourseId)?.name || '';
-            const lec = state.currentLectureIndex;
-            // تجنب التكرار لنفس المحاضرة في نفس الجلسة
-            const exists = (state.user.watchHistory || []).some(w => w.course === cname && w.lecture === lec);
-            if (!exists) {
-                state.user.watchHistory.unshift({ course: cname, lecture: lec, t: new Date().toLocaleString() });
-                if (state.user.watchHistory.length > 30) state.user.watchHistory.pop();
-            }
-        }
-
-        function finishLecture() {
-            if (!state.user.isLoggedIn) return showToast('loginReq', true);
-            const key = hwKey();
-            if (state.user.hwGrades[key] == null) {
-                showToast(state.lang === 'ar' ? 'لازم تسلّم الواجب قبل إنهاء المحاضرة' : 'You must submit the homework before finishing', true);
-                switchLectureTab('hw', true);
-                updateLectureNavButtons();
-                return;
-            }
-            const cid = state.currentCourseId;
-            if (!state.user.finishedLectures[cid]) state.user.finishedLectures[cid] = [];
-            if (!state.user.finishedLectures[cid].includes(state.currentLectureIndex)) {
-                state.user.finishedLectures[cid].push(state.currentLectureIndex);
-            }
-            showToast(state.lang === 'ar' ? 'تم إنهاء المحاضرة ✓' : 'Lecture Finished ✓');
-            openCourse(cid);
-        }
-
-        function updateLectureNavButtons() {
-            const tab = state.currentLectureTab || 'video';
-            const nextBtn = document.querySelector('#lecture-view button[onclick="nextLecture()"]');
-            if (nextBtn) {
-                const label = nextBtn.querySelector('span');
-                if (tab === 'solution') {
-                    if (label) label.textContent = state.lang === 'ar' ? 'إنهاء والرجوع' : 'Finish & Back';
-                } else if (tab === 'hw') {
-                    if (label) label.textContent = state.lang === 'ar' ? 'التالي (حل الواجب)' : 'Next (Solution)';
-                } else if (tab === 'summary') {
-                    if (label) label.textContent = state.lang === 'ar' ? 'التالي (الواجب)' : 'Next (Homework)';
-                } else {
-                    if (label) label.textContent = state.lang === 'ar' ? 'التالي (الملخص)' : 'Next (Summary)';
-                }
-            }
-        }
-
-        function switchLectureTab(id, fromNext = false) {
-            // منع تخطي الترتيب يدويًا لحل الواجب
-            if (id === 'solution') {
-                const key = hwKey();
-                if (!state.user.solutionUnlocked[key]) {
-                    showToast(state.lang === 'ar' ? 'سلّم الواجب أولاً لفتح الحل' : 'Submit HW first to unlock solution', true);
-                    return;
-                }
-            }
-            state.currentLectureTab = id;
-            document.querySelectorAll('#lecture-view .interactive-card').forEach(c => {
-                c.classList.remove('active-tab', 'border-customPrimary');
-                c.classList.add('border-transparent');
-            });
-            document.querySelectorAll('#lecture-view .tab-content').forEach(c => {
-                c.classList.add('hidden');
-                c.classList.remove('flex');
-            });
-            const tb = document.getElementById('tab-' + id);
-            if (tb) { tb.classList.add('active-tab'); tb.classList.replace('border-transparent', 'border-customPrimary'); }
-            const ct = document.getElementById('content-' + id);
-            if (ct) {
-                ct.classList.remove('hidden');
-                if (id === 'video' || id === 'summary' || id === 'solution') ct.classList.add('flex');
-            }
-            if (id === 'hw') prepareHWPreview();
-            if (id === 'solution') updateSolutionLock();
-            updateLectureNavButtons();
-        }
-
-        let hwState = { qs: [], idx: 0, answers: [] };
-
-        function escapeHtml(str) {
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-        }
-
-        function prepareHWPreview() {
-            const key = hwKey();
-            if (state.user.hwGrades[key] != null) {
-                document.getElementById('hw-intro').classList.add('hidden');
-                document.getElementById('hw-solve').classList.add('hidden');
-                document.getElementById('hw-result').classList.remove('hidden');
-                document.getElementById('hw-result-score').textContent = state.user.hwGrades[key] + '/2';
-            } else {
-                resetHWUI();
-            }
-        }
-
-        function resetHWUI() {
-            const a = document.getElementById('hw-intro');
-            const b = document.getElementById('hw-solve');
-            const c = document.getElementById('hw-result');
-            if (a) a.classList.remove('hidden');
-            if (b) b.classList.add('hidden');
-            if (c) c.classList.add('hidden');
-            hwState = { qs: [], idx: 0, answers: [] };
-        }
-
-        function startHWSolve() {
-            if (!state.user.isLoggedIn) return showToast('loginReq', true);
-            const qs = lectureHW[state.currentCourseId]?.[state.currentLectureIndex] || [];
-            if (!qs.length) return showToast(state.lang==='ar'?'لا توجد أسئلة':'No questions', true);
-            hwState = { qs: qs, idx: 0, answers: new Array(qs.length).fill(null) };
-            document.getElementById('hw-intro').classList.add('hidden');
-            document.getElementById('hw-result').classList.add('hidden');
-            document.getElementById('hw-solve').classList.remove('hidden');
-            renderHWQuestion();
-        }
-
-        function renderHWQuestion() {
-            const { qs, idx, answers } = hwState;
-            const q = qs[idx];
-            // progress pills
-            const prog = document.getElementById('hw-progress');
-            prog.innerHTML = qs.map((_, i) => {
-                let cls = 'w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ';
-                if (i === idx) cls += 'bg-customPrimary text-white border-customPrimary scale-110';
-                else if (answers[i] != null) cls += 'bg-green-500/20 text-green-500 border-green-500';
-                else cls += 'bg-black/5 dark:bg-white/5 border-slate-300/30 opacity-70';
-                return `<button type="button" onclick="hwGoToQ(${i})" class="${cls}">${i+1}</button>`;
-            }).join('');
-
-            document.getElementById('hw-q-counter').textContent =
-                (state.lang==='ar' ? `السؤال ${idx+1} من ${qs.length}` : `Question ${idx+1} of ${qs.length}`);
-            document.getElementById('hw-q-text').textContent = q.q;
-
-            const opts = document.getElementById('hw-opts');
-            opts.innerHTML = q.opts.map((o, oi) => {
-                const selected = answers[idx] === oi;
-                return `<label class="flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${selected ? 'border-customPrimary bg-customPrimary/10' : 'border-slate-200/20 hover:border-customPrimary/40 bg-customCard'}">
-                    <input type="radio" name="hw_current" value="${oi}" ${selected?'checked':''} class="accent-customPrimary w-4 h-4 shrink-0" onchange="hwSelectOpt(${oi})">
-                    <span class="text-sm md:text-base font-medium leading-relaxed">${escapeHtml(o)}</span>
-                </label>`;
-            }).join('');
-
-            document.getElementById('hw-prev-btn').disabled = idx === 0;
-            const nextBtn = document.getElementById('hw-next-btn');
-            nextBtn.textContent = idx === qs.length - 1
-                ? (state.lang==='ar' ? 'تسليم الإجابات' : 'Submit Answers')
-                : (state.lang==='ar' ? 'التالي' : 'Next');
-        }
-
-        function hwSelectOpt(oi) {
-            hwState.answers[hwState.idx] = oi;
-            renderHWQuestion();
-        }
-        function hwGoToQ(i) {
-            hwState.idx = i;
-            renderHWQuestion();
-        }
-        function hwPrevQ() {
-            if (hwState.idx > 0) { hwState.idx--; renderHWQuestion(); }
-        }
-        function hwNextQ() {
-            if (hwState.answers[hwState.idx] == null) {
-                return showToast(state.lang==='ar'?'اختار إجابة الأول':'Select an answer first', true);
-            }
-            if (hwState.idx < hwState.qs.length - 1) {
-                hwState.idx++;
-                renderHWQuestion();
-            } else {
-                gradeHW();
-            }
-        }
-
-        function gradeHW() {
-            const { qs, answers } = hwState;
-            // require all answered
-            if (answers.some(a => a == null)) {
-                return showToast(state.lang==='ar'?'جاوب على كل الأسئلة':'Answer all questions', true);
-            }
-            let score = 0;
-            qs.forEach((q, i) => { if (answers[i] === q.c) score++; });
-            const key = hwKey();
-            state.user.hwGrades[key] = score;
-            state.user.completedHW[key] = true;
-            state.user.solutionUnlocked[key] = true;
-            document.getElementById('hw-solve').classList.add('hidden');
-            document.getElementById('hw-result').classList.remove('hidden');
-            document.getElementById('hw-result-score').textContent = score + '/' + qs.length;
-            document.getElementById('hw-result-icon').textContent = score >= 1 ? '✅' : '📝';
-            logActivity((state.lang==='ar'?'واجب':'HW') + ` Lecture ${state.currentLectureIndex}: ${score}/${qs.length}`, 'fa-tasks', 'text-amber-500');
-            showToast(state.lang==='ar' ? `نتيجتك ${score}/${qs.length} — تم فتح الحل` : `Score ${score}/${qs.length} — solution unlocked`);
-            updateSolutionLock();
-            state.currentLectureTab = 'hw';
-            updateLectureNavButtons();
-        }
-
-        function updateSolutionLock() {
-            const key = hwKey();
-            const unlocked = !!state.user.solutionUnlocked[key];
-            const locked = document.getElementById('solution-locked');
-            const video = document.getElementById('solution-video');
-            if (locked) locked.classList.toggle('hidden', unlocked);
-            if (video) video.classList.toggle('hidden', !unlocked);
-        }
-
-        function submitLectureHW() { startHWSolve(); }
-        
-        const finalExamQs = {
-            c_html: [
-                {q:'ما هو الـ DOCTYPE الصحيح لـ HTML5؟', opts:['<!DOCTYPE html5>','<!DOCTYPE HTML PUBLIC>','<!DOCTYPE html>','<html5>'], c:2},
-                {q:'أي وسم لإنشاء قائمة غير مرتبة؟', opts:['<ol>','<ul>','<li>','<list>'], c:1},
-                {q:'ما الخاصية التي تحدد مصدر الصورة؟', opts:['href','src','link','url'], c:1},
-                {q:'أي وسم دلالي للمحتوى الرئيسي؟', opts:['<content>','<main>','<body>','<section>'], c:1},
-                {q:'كيف نفتح رابط في تبويب جديد؟', opts:['target="_self"','target="_blank"','target="_new"','target="_tab"'], c:1},
-                {q:'ما وسم إنشاء جدول؟', opts:['<table>','<grid>','<tab>','<tbl>'], c:0},
-                {q:'أي input type للرقم؟', opts:['text','number','num','digit'], c:1},
-                {q:'ما وسم التعليق في HTML؟', opts:['// comment','/* comment */','<!-- comment -->','# comment'], c:2},
-                {q:'أي وسم لدمج خلايا الجدول أفقياً؟', opts:['rowspan','colspan','merge','span'], c:1},
-                {q:'ما فائدة خاصية alt في الصورة؟', opts:['تغيير الحجم','نص بديل عند فشل التحميل','إضافة رابط','تلوين'], c:1}
-            ],
-            c_css: [
-                {q:'كيف نحدد عنصراً بالـ class؟', opts:['#class','.class','class','*class'], c:1},
-                {q:'ما الخاصية لجعل النص عريضاً؟', opts:['font-weight: bold','text-bold: true','font-style: bold','weight: bold'], c:0},
-                {q:'display: none يفعل ماذا؟', opts:['يخفي ويحتفظ بالمساحة','يخفي ويزيل المساحة','شفافية 0','لا شيء'], c:1},
-                {q:'ما وحدة القياس النسبية للخط؟', opts:['px','em','cm','pt'], c:1},
-                {q:'Flexbox يُستخدم أساساً لـ؟', opts:['الرسوم','التخطيط أحادي البعد','الفيديو','الصوت'], c:1},
-                {q:'ما الخاصية للمسافة خارج الحدود؟', opts:['padding','margin','border','spacing'], c:1},
-                {q:'position: absolute بالنسبة لـ؟', opts:['الـ viewport','أقرب عنصر positioned','الـ body','لا شيء'], c:1},
-                {q:'كيف نجعل عنصراً دائرياً؟', opts:['border-radius: 50%','circle: true','shape: round','round: 100%'], c:0},
-                {q:'z-index يتحكم في؟', opts:['الشفافية','ترتيب الطبقات','الحجم','اللون'], c:1},
-                {q:'أفضل ممارسة للاستجابة؟', opts:['صور ثابتة','Media Queries','جداول','إطارات'], c:1}
-            ],
-            c_js: [
-                {q:'ما الفرق بين let و var؟', opts:['لا فرق','let لها block scope','var أحدث','let عامة فقط'], c:1},
-                {q:'ما ناتج 2 + "2"؟', opts:['4','"22"','error','NaN'], c:1},
-                {q:'كيف نحول نص لرقم؟', opts:['toNumber()','parseInt()','Number.parse()','int()'], c:1},
-                {q:'ما هي الـ Arrow Function؟', opts:['function => {}','() => {}','arrow function()','=> function'], c:1},
-                {q:'localStorage يخزن البيانات؟', opts:['في السيرفر','في المتصفح بشكل دائم','مؤقتاً فقط','في الكوكيز'], c:1},
-                {q:'إضافة عنصر لأول مصفوفة؟', opts:['push','unshift','shift','pop'], c:1},
-                {q:'Promise تُستخدم لـ؟', opts:['الحلقات','العمليات غير المتزامنة','الشرطيات','المصفوفات'], c:1},
-                {q:'ما ناتج Boolean(0)؟', opts:['true','false','0','null'], c:1},
-                {q:'كيف نوقف انتشار الحدث؟', opts:['stop()','event.stopPropagation()','prevent()','halt()'], c:1},
-                {q:'JSON.stringify يفعل ماذا؟', opts:['يحول كائن لنص JSON','يحول نص لكائن','يطبع','يحذف'], c:0}
-            ]
+function onBuilderImageChange(input) {
+    const file = input.files?.[0];
+    const prev = document.getElementById('builder-image-preview');
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            prev.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-xl">`;
+            prev.dataset.src = e.target.result;
         };
+        reader.readAsDataURL(file);
+    }
+}
 
-        function openFinalExam() { 
-            if (!state.user.isLoggedIn) return showToast('loginReq', true);
-            const cid = state.currentCourseId;
-            const qs = finalExamQs[cid];
-            if (!qs) return showToast('No exam', true);
-            state.exam = { questions: qs, answers: {}, current: 0, courseId: cid };
-            document.getElementById('exam-course-name') && (document.getElementById('exam-course-name').textContent = db.courses.find(c=>c.id===cid)?.name || '');
-            renderExamQ();
-            openModal('exam-modal');
-        }
-        function renderExamQ() {
-            const { questions, current, answers } = state.exam;
-            const q = questions[current];
-            const area = document.getElementById('exam-question-area');
-            if (!area) return;
-            area.innerHTML = `<div><p class="text-lg font-bold mb-6">${current+1}. ${q.q}</p><div class="space-y-3">${q.opts.map((o,i)=>`<div onclick="selectExamAns(${i})" class="exam-option flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200/30 ${answers[current]===i?'selected':''}"><div class="w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-sm ${answers[current]===i?'bg-customPrimary text-white border-customPrimary':'border-slate-400'}">${String.fromCharCode(65+i)}</div><span class="font-medium">${o}</span></div>`).join('')}</div></div>`;
-            const prog = document.getElementById('exam-progress');
-            if (prog) prog.textContent = `${current+1} / ${questions.length}`;
-            const bar = document.getElementById('exam-progress-bar');
-            if (bar) bar.style.width = `${((current+1)/questions.length)*100}%`;
-            const prevBtn = document.getElementById('exam-prev-btn');
-            if (prevBtn) prevBtn.disabled = current === 0;
-            const isLast = current === questions.length - 1;
-            const nextBtn = document.getElementById('exam-next-btn');
-            const subBtn = document.getElementById('exam-submit-btn');
-            if (nextBtn) nextBtn.classList.toggle('hidden', isLast);
-            if (subBtn) subBtn.classList.toggle('hidden', !isLast);
-        }
-        function selectExamAns(i) { state.exam.answers[state.exam.current] = i; renderExamQ(); }
-        function prevExamQ() { if (state.exam.current > 0) { state.exam.current--; renderExamQ(); } }
-        function nextExamQ() { if (state.exam.current < state.exam.questions.length-1) { state.exam.current++; renderExamQ(); } }
-        function submitExam() {
-            const { questions, answers, courseId } = state.exam;
-            let score = 0;
-            questions.forEach((q,i) => { if (answers[i] === q.c) score++; });
-            state.user.passedExams[courseId] = score;
-            closeModal('exam-modal');
-            const passed = score >= 6;
-            logActivity(`${state.lang==='ar'?'اختبار':'Exam'} ${score}/10`, 'fa-trophy', passed?'text-amber-500':'text-slate-400');
-            showToast(passed ? (state.lang==='ar'?`مبروك! نجحت ${score}/10`:`Passed ${score}/10`) : (state.lang==='ar'?`حاول مرة أخرى ${score}/10`:`Try again ${score}/10`));
-        }
-        function finishExam() { submitExam(); }
+function saveAndPublishCourse() {
+    const nameEl = document.getElementById('builder-course-name');
+    const priceEl = document.getElementById('builder-course-price');
+    if (!nameEl || !nameEl.value.trim()) return showToast(state.lang === 'ar' ? 'يرجى إدخال اسم الكورس' : 'Enter course name', true);
+    const price = parseInt(priceEl?.value || '100', 10);
+    if (isNaN(price) || price < 0) return showToast(state.lang === 'ar' ? 'سعر غير صحيح' : 'Invalid price', true);
 
-        function switchRecordTab(id) {
-            document.querySelectorAll('.rec-tab').forEach(t => { t.classList.remove('active-tab', 'opacity-100'); t.classList.add('opacity-60'); });
-            document.querySelectorAll('.rec-content').forEach(c => c.classList.add('hidden'));
-            const activeT = document.getElementById('rec-tab-' + id);
-            if (activeT) { activeT.classList.add('active-tab', 'opacity-100'); activeT.classList.remove('opacity-60'); }
-            const panel = document.getElementById('rec-content-' + id);
-            if (panel) panel.classList.remove('hidden');
-            if (id === 'watch') renderWatchHistory();
-            if (id === 'exams') renderExamsHistory();
-            if (id === 'hws') renderHWGrades();
-        }
+    const stage = document.getElementById('builder-course-stage').value;
+    const year = document.getElementById('builder-course-year').value;
+    const prev = document.getElementById('builder-image-preview');
+    const logo = prev.dataset.src || null;
 
-        
-        function renderExamsHistory() {
-            const list = document.getElementById('exams-history-list');
-            if (!list) return;
-            const exams = Object.entries(state.user.passedExams || {});
-            const quizzes = Object.entries(state.user.quizScores || {});
-            if (!exams.length && !quizzes.length) {
-                list.innerHTML = `<div class="bg-customCard p-6 rounded-2xl border text-center opacity-70 font-bold">${i18n[state.lang].emptyState}</div>`;
-                return;
+    const courseData = {
+        name: nameEl.value.trim(),
+        desc: state.lang === 'ar' ? 'كورس مضاف حديثاً' : 'Newly added course',
+        price,
+        stage,
+        year,
+        logo: logo || null,
+        lessons: builderLessons.map(l => ({
+            title: l.title,
+            explainUrl: l.explainUrl || '',
+            summaryUrl: l.summaryUrl || '',
+            solutionUrl: l.solutionUrl || '',
+            questions: l.questions || []
+        }))
+    };
+
+    if (currentBuilderCourseId) {
+        const idx = db.courses.findIndex(c => c.id === currentBuilderCourseId);
+        if (idx >= 0) {
+            db.courses[idx] = { ...db.courses[idx], ...courseData };
+        }
+    } else {
+        courseData.id = 'c_' + Date.now();
+        db.courses.unshift(courseData);
+    }
+
+    showToast(state.lang === 'ar' ? 'تم نشر الكورس بنجاح!' : 'Course published successfully!');
+    saveToStorage();
+    addActivity(`نشر كورس: ${courseData.name}`);
+    renderInstCourses();
+    renderSuggested();
+    switchView('inst-courses-view');
+}
+
+// ==================== STUDENTS ====================
+let studentFilter = { level: 'all', year: 'all', faculty: 'all' };
+
+function setStudentFilter(key, value) {
+    studentFilter[key] = value;
+    if (key === 'level') {
+        studentFilter.year = 'all';
+        studentFilter.faculty = 'all';
+    }
+    if (key === 'faculty') {
+        studentFilter.year = 'all';
+    }
+    renderStudents();
+}
+
+function renderStudents() {
+    const container = document.getElementById('students-list');
+    const filtersEl = document.getElementById('students-filters');
+    if (!container) return;
+
+    // Also try load from Firestore if available
+    if (window.firebaseApp && state.user.role === 'teacher') {
+        firebase.firestore().collection('users').where('role', '==', 'student').get()
+            .then(snap => {
+                const list = [];
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    list.push({ id: doc.id, ...d, joined: d.createdAt?.toDate?.()?.toISOString?.()?.slice(0,10) || '' });
+                });
+                if (list.length) db.students = list;
+                _renderStudentsUI(container, filtersEl);
+            })
+            .catch(() => _renderStudentsUI(container, filtersEl));
+    } else {
+        _renderStudentsUI(container, filtersEl);
+    }
+}
+
+function _renderStudentsUI(container, filtersEl) {
+    // Filters UI
+    if (filtersEl) {
+        const levels = [
+            { id: 'all', ar: 'الكل', en: 'All' },
+            { id: 'univ', ar: 'جامعي', en: 'University' },
+            { id: 'high', ar: 'ثانوي', en: 'High School' },
+            { id: 'middle', ar: 'إعدادي', en: 'Middle School' }
+        ];
+        let html = '<div class="flex flex-wrap gap-2 mb-3">';
+        levels.forEach(l => {
+            const active = studentFilter.level === l.id ? 'active' : '';
+            html += `<button class="filter-chip ${active}" onclick="setStudentFilter('level','${l.id}')">${state.lang==='ar'?l.ar:l.en}</button>`;
+        });
+        html += '</div>';
+
+        // Year chips (dynamic by faculty for univ)
+        if (studentFilter.level !== 'all') {
+            let maxY = 3;
+            if (studentFilter.level === 'univ') {
+                if (studentFilter.faculty !== 'all') {
+                    const fac = FACULTIES.find(f => f.id === studentFilter.faculty);
+                    maxY = fac ? fac.years : 4;
+                } else {
+                    maxY = 7; // show all possible when no faculty selected
+                }
             }
-            let html2 = '';
-            exams.forEach(([cid, score]) => {
-                const c = db.courses.find(x => x.id === cid);
-                const passed = score >= 6;
-                html2 += `<div class="flex items-center justify-between p-4 bg-customCard rounded-xl border border-slate-200/20">
-                    <div class="flex items-center gap-3">
-                        <img src="${c?.logo||''}" class="w-10 h-10">
-                        <div>
-                            <p class="font-bold text-sm" dir="ltr">${c?.name||cid} — ${state.lang==='ar'?'اختبار الإتمام':'Final Exam'}</p>
-                            <p class="text-xs opacity-60">${passed ? (state.lang==='ar'?'ناجح':'Passed') : (state.lang==='ar'?'راسب':'Failed')}</p>
-                        </div>
-                    </div>
-                    <span class="font-black text-lg ${passed?'text-green-500':'text-red-400'}">${score}/10</span>
-                </div>`;
-            });
-            quizzes.forEach(([key, score]) => {
-                html2 += `<div class="flex items-center justify-between p-4 bg-customCard rounded-xl border border-slate-200/20">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-purple-500/20 text-purple-500 flex items-center justify-center"><i class="fas fa-question"></i></div>
-                        <div>
-                            <p class="font-bold text-sm">${state.lang==='ar'?'اختبار سريع':'Quick Quiz'} ${key}</p>
-                        </div>
-                    </div>
-                    <span class="font-black text-lg text-customPrimary">${score}</span>
-                </div>`;
-            });
-            list.innerHTML = html2;
-        }
-function renderWatchHistory() {
-            const list = document.getElementById('watch-history-list');
-            if (!list) return;
-            const items = state.user.watchHistory || [];
-            if (!items.length) {
-                list.innerHTML = `<div class="bg-customCard p-6 rounded-2xl border text-center opacity-70 font-bold">${i18n[state.lang].emptyState}</div>`;
-                return;
+            html += '<div class="flex flex-wrap gap-2 mb-3">';
+            html += `<button class="filter-chip ${studentFilter.year==='all'?'active':''}" onclick="setStudentFilter('year','all')">${state.lang==='ar'?'كل السنوات':'All years'}</button>`;
+            for (let y=1; y<=maxY; y++) {
+                html += `<button class="filter-chip ${studentFilter.year==String(y)?'active':''}" onclick="setStudentFilter('year','${y}')">${state.lang==='ar'?'سنة '+y:'Year '+y}</button>`;
             }
-            list.innerHTML = items.map(w => `
-                <div class="flex items-center justify-between p-4 bg-customCard rounded-xl border border-slate-200/20">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-customPrimary/20 text-customPrimary flex items-center justify-center"><i class="fas fa-play"></i></div>
-                        <div>
-                            <p class="font-bold text-sm" dir="ltr">${w.course} — Lecture ${w.lecture}</p>
-                            <p class="text-xs opacity-50">${w.t}</p>
-                        </div>
-                    </div>
-                    <span class="text-xs font-bold text-customPrimary">${state.lang==='ar'?'تمت المشاهدة':'Watched'}</span>
+            html += '</div>';
+        }
+
+        // Faculty chips for univ
+        if (studentFilter.level === 'univ') {
+            html += '<div class="flex flex-wrap gap-2 mb-4 max-h-24 overflow-y-auto">';
+            html += `<button class="filter-chip ${studentFilter.faculty==='all'?'active':''}" onclick="setStudentFilter('faculty','all')">${state.lang==='ar'?'كل الكليات':'All faculties'}</button>`;
+            FACULTIES.slice(0,12).forEach(f => {
+                html += `<button class="filter-chip ${studentFilter.faculty===f.id?'active':''}" onclick="setStudentFilter('faculty','${f.id}')">${state.lang==='ar'?f.nameAr:f.nameEn}</button>`;
+            });
+            html += '</div>';
+        }
+        filtersEl.innerHTML = html;
+    }
+
+    let list = db.students.slice();
+    if (studentFilter.level !== 'all') list = list.filter(s => s.level === studentFilter.level);
+    if (studentFilter.year !== 'all') list = list.filter(s => String(s.year) === String(studentFilter.year));
+    if (studentFilter.faculty !== 'all') list = list.filter(s => s.faculty === studentFilter.faculty);
+
+    if (list.length === 0) {
+        container.innerHTML = `<p class="text-center opacity-60 py-8">${t('noStudents')}</p>`;
+        return;
+    }
+    container.innerHTML = list.map(s => `
+        <div class="bg-customCard p-4 rounded-xl border border-slate-200/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+                <h4 class="font-bold text-base">${s.name}</h4>
+                <p class="text-sm opacity-60">${s.email || ''}</p>
+                <p class="text-xs opacity-50 mt-1">
+                    ${levelLabel(s.level)}${s.level === 'univ' && s.faculty ? ' • ' + getFacultyName(s.faculty) : ''}
+                    • ${state.lang==='ar'?'سنة':'Year'} ${s.year || '-'}
+                </p>
+                <p class="text-xs mt-1 font-medium">
+                    ${s.phone ? '<i class="fas fa-phone text-customPrimary me-1"></i>' + s.phone : ''}
+                    ${s.parentPhone ? ' <span class="opacity-60">|</span> <i class="fas fa-user-shield text-amber-500 me-1"></i>' + s.parentPhone : ''}
+                </p>
+            </div>
+            <span class="text-xs bg-customPrimary/10 text-customPrimary px-3 py-1 rounded-full font-bold">${s.joined || ''}</span>
+        </div>
+    `).join('');
+}
+
+// ==================== COMMUNITY ====================
+let activeCommunityId = 'general';
+
+function renderCommunity() {
+    const joinBtn = document.getElementById('join-community-btn');
+    if (joinBtn) {
+        joinBtn.classList.toggle('hidden', state.user.role === 'teacher' || state.user.joinedCommunity);
+    }
+    const createWrap = document.getElementById('community-create-wrap');
+    if (createWrap) {
+        createWrap.classList.toggle('hidden', state.user.role !== 'teacher');
+    }
+
+    // Tabs
+    const tabs = document.getElementById('community-tabs');
+    if (tabs) {
+        tabs.innerHTML = (db.communities || []).map(c => {
+            const name = state.lang === 'ar' ? c.nameAr : c.nameEn;
+            const active = (c.id === activeCommunityId) ? 'active' : '';
+            return `<button class="filter-chip ${active}" onclick="setActiveCommunity('${c.id}')">${name}</button>`;
+        }).join('');
+    }
+
+    const list = document.getElementById('community-posts');
+    if (!list) return;
+    const posts = (db.communityPosts || []).filter(p => (p.communityId || 'general') === activeCommunityId);
+    if (posts.length === 0) {
+        list.innerHTML = `<p class="text-center opacity-50 py-8 text-sm">${state.lang==='ar'?'لا توجد منشورات بعد':'No posts yet'}</p>`;
+        return;
+    }
+    const teacherTag = state.lang === 'ar' ? '(معلم)' : '(Teacher)';
+    list.innerHTML = posts.map(p => `
+        <div class="bg-customCard p-4 rounded-xl border border-slate-200/20">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 rounded-full bg-customPrimary/20 text-customPrimary flex items-center justify-center text-sm font-bold">${(p.author||'?')[0]}</div>
+                <div>
+                    <p class="font-bold text-sm">${p.author} ${p.role === 'teacher' ? '<span class="text-xs text-customPrimary">'+teacherTag+'</span>' : ''}</p>
+                    <p class="text-xs opacity-50">${p.time}</p>
+                </div>
+            </div>
+            <p class="text-sm leading-relaxed">${p.text}</p>
+        </div>
+    `).join('');
+}
+
+function setActiveCommunity(id) {
+    activeCommunityId = id;
+    renderCommunity();
+}
+
+function createCommunity() {
+    if (state.user.role !== 'teacher') return;
+    const nameAr = prompt(state.lang === 'ar' ? 'اسم المجتمع (عربي):' : 'Community name (Arabic):');
+    if (!nameAr || !nameAr.trim()) return;
+    const nameEn = prompt(state.lang === 'ar' ? 'اسم المجتمع (إنجليزي):' : 'Community name (English):') || nameAr;
+    const id = 'c_' + Date.now();
+    db.communities.push({ id, nameAr: nameAr.trim(), nameEn: nameEn.trim(), isDefault: false });
+    activeCommunityId = id;
+    saveToStorage();
+    renderCommunity();
+    showToast(state.lang === 'ar' ? 'تم إنشاء المجتمع' : 'Community created');
+}
+
+function joinCommunity() {
+    state.user.joinedCommunity = true;
+    showToast(state.lang === 'ar' ? 'انضممت للمجتمع!' : 'Joined community!');
+    addActivity('انضم للمجتمع');
+}
+
+function postToCommunity() {
+    const input = document.getElementById('community-post-input');
+    if (!input || !input.value.trim()) return;
+    if (state.user.role !== 'teacher' && !state.user.joinedCommunity) {
+        return showToast(state.lang === 'ar' ? 'انضم للمجتمع أولاً' : 'Join community first', true);
+    }
+    // teacher always allowed
+    db.communityPosts.unshift({
+        id: Date.now(),
+        communityId: activeCommunityId || 'general',
+        author: state.user.name,
+        role: state.user.role,
+        text: input.value.trim(),
+        time: new Date().toLocaleDateString()
+    });
+    input.value = '';
+    renderCommunity();
+    saveToStorage();
+    showToast(state.lang === 'ar' ? 'تم النشر' : 'Posted');
+}
+
+// ==================== RECORDS & STATS ====================
+function renderRecords() {
+    const watch = document.getElementById('watch-history-list');
+    const hw = document.getElementById('hw-history-list');
+    if (watch) {
+        if (state.user.watchHistory.length === 0) {
+            watch.innerHTML = `<p class="opacity-50 text-sm py-4">${state.lang === 'ar' ? 'لا يوجد سجل مشاهدة' : 'No watch history'}</p>`;
+        } else {
+            watch.innerHTML = state.user.watchHistory.slice().reverse().map(h => `
+                <div class="flex justify-between items-center py-2 border-b border-slate-200/10 text-sm">
+                    <span>${h.title || 'درس'}</span>
+                    <span class="opacity-50 text-xs">${h.time}</span>
                 </div>
             `).join('');
         }
-
-        function renderHWGrades() {
-            const list = document.getElementById('assignments-grid');
-            if (!list) return;
-            const grades = Object.entries(state.user.hwGrades || {});
-            if (!grades.length) {
-                list.innerHTML = `<div class="bg-customCard p-6 rounded-2xl border text-center opacity-70 font-bold">${i18n[state.lang].emptyState}</div>`;
-                return;
-            }
-            list.innerHTML = grades.map(([key, score]) => {
-                const parts = key.split('_lec');
-                const cid = parts[0];
-                const lec = parts[1] || '?';
-                const cname = db.courses.find(c => c.id === cid)?.name || cid;
-                return `<div class="flex items-center justify-between p-4 bg-customCard rounded-xl border border-slate-200/20">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center"><i class="fas fa-tasks"></i></div>
-                        <div>
-                            <p class="font-bold text-sm" dir="ltr">${cname} — Lecture ${lec}</p>
-                            <p class="text-xs opacity-50">${state.lang==='ar'?'واجب المحاضرة':'Lecture HW'}</p>
-                        </div>
-                    </div>
-                    <span class="font-black text-lg ${score>=1?'text-green-500':'text-red-400'}">${score}/2</span>
-                </div>`;
-            }).join('');
-        }
-
-        function renderAssignments() {
-            const g = document.getElementById('assignments-grid'); g.innerHTML = '';
-            db.assignments.forEach((hw) => {
-                const done = state.user.completedHW[hw.id];
-                g.innerHTML += `
-                    <div class="bg-customCard p-6 rounded-2xl border border-slate-200/20 shadow-sm relative overflow-hidden">
-                        ${done ? `<div class="absolute top-4 end-4 text-green-500 text-sm font-bold flex flex-col items-center"><i class="fas fa-check-circle text-2xl"></i><span>${hw.maxGrade}/${hw.maxGrade}</span></div>` : ''}
-                        <h3 class="font-bold text-lg mb-4 text-customPrimary">${hw.title}</h3>
-                        <ul class="list-disc list-inside text-sm mb-6 opacity-70 space-y-1"><li>${hw.q1}</li><li>${hw.q2}</li></ul>
-                        <div class="flex gap-3">
-                            <button class="flex-1 bg-black/5 dark:bg-white/5 py-2 rounded-lg font-bold text-sm hover:bg-black/10"><i class="fas fa-download"></i> ${i18n[state.lang].hwDownload}</button>
-                            <button onclick="submitGenHW('${hw.id}')" class="flex-1 ${done?'bg-green-500 text-white cursor-default':'bg-customPrimary hover:opacity-90 text-white'} py-2 rounded-lg font-bold text-sm shadow-sm transition-colors">
-                                <i class="fas fa-${done?'check':'upload'}"></i> ${done ? i18n[state.lang].hwDone : i18n[state.lang].hwSubmit}
-                            </button>
-                        </div>
-                    </div>`;
-            });
-        }
-        function submitGenHW(id) {
-            if(!state.user.isLoggedIn) return showToast('loginReq', true);
-            if(state.user.completedHW[id]) return;
-            state.user.completedHW[id] = true; logActivity(`${i18n[state.lang].subLog}`, 'fa-tasks', 'text-blue-500');
-            showToast(state.lang==='ar'?'تم التسليم!':'Submitted!'); renderAssignments();
-        }
-
-        function logActivity(text, icon, color) {
-            const t = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            state.user.activity.unshift({ text, icon, color, t });
-            if(state.user.activity.length > 8) state.user.activity.pop();
-            renderActivity();
-        }
-        function renderActivity() {
-            const c = document.getElementById('activity-list');
-            if(state.user.activity.length===0) { c.innerHTML = `<div class="text-center opacity-50 mt-10 text-sm" data-i18n="emptyState">${i18n[state.lang].emptyState}</div>`; return; }
-            c.innerHTML = state.user.activity.map(a => `
-                <div class="flex items-start gap-3 p-3 bg-black/5 dark:bg-white/5 rounded-lg border border-slate-200/10">
-                    <div class="w-8 h-8 rounded-full bg-customCard flex items-center justify-center shrink-0"><i class="fas ${a.icon} ${a.color}"></i></div>
-                    <div><p class="text-sm font-bold">${a.text}</p><span class="text-xs opacity-50">${a.t}</span></div>
+    }
+    if (hw) {
+        const grades = Object.entries(state.user.hwGrades);
+        if (grades.length === 0) {
+            hw.innerHTML = `<p class="opacity-50 text-sm py-4">${state.lang === 'ar' ? 'لا يوجد سجل واجبات' : 'No homework records'}</p>`;
+        } else {
+            hw.innerHTML = grades.map(([k, score]) => `
+                <div class="flex justify-between items-center py-2 border-b border-slate-200/10 text-sm">
+                    <span>${k}</span>
+                    <span class="font-bold text-customPrimary">${score}</span>
                 </div>
             `).join('');
         }
+    }
+}
 
-        function renderStats() {
-            Object.values(state.chartInstances || {}).forEach(c => { try { c.destroy(); } catch(e){} });
-            state.chartInstances = {};
-            const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim() || '#f8fafc';
-            const totalPossibleLec = Math.max(1, state.user.myCourses.length * 3);
-            let finishedLec = 0;
-            Object.values(state.user.finishedLectures || {}).forEach(arr => finishedLec += arr.length);
-            const remainingLec = Math.max(0, totalPossibleLec - finishedLec);
-            const doneHW = Object.keys(state.user.completedHW || {}).length;
-            const pendingHW = Math.max(0, 5 - doneHW);
-            const passedEx = Object.values(state.user.passedExams || {}).filter(s => s >= 6).length;
-            const totalEx = Math.max(1, state.user.myCourses.length);
-            const pendingEx = Math.max(0, totalEx - Object.keys(state.user.passedExams || {}).length);
+function renderStats() {
+    const totalLessons = db.courses.reduce((acc, c) => acc + (c.lessons?.length || 0), 0) || 1;
+    const finished = Object.keys(state.user.finishedLectures).length;
+    const hwDone = Object.keys(state.user.completedHW).length;
+    const progress = Math.min(100, Math.round((finished / totalLessons) * 100));
 
-            const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: textColor, font: {family: 'Cairo', size: 11, weight: 'bold'}, padding: 10 } } } };
+    const pBar = document.getElementById('stat-progress-bar');
+    const pText = document.getElementById('stat-progress-text');
+    if (pBar) pBar.style.width = progress + '%';
+    if (pText) pText.textContent = progress + '%';
 
-            const el1 = document.getElementById('chartLectures');
-            if (el1) state.chartInstances.lec = new Chart(el1, { type: 'doughnut', data: { labels: [i18n[state.lang].chartAttended || 'منتهية', i18n[state.lang].chartUnattended || 'متبقية'], datasets: [{ data: [finishedLec||0.01, remainingLec||0.01], backgroundColor: ['#10b981','#64748b'], borderWidth: 0 }] }, options: opts });
-            const m1 = document.getElementById('lectures-motivation');
-            if (m1) m1.textContent = finishedLec > remainingLec ? (state.lang==='ar'?'ممتاز! أنت متقدم 🔥':'Excellent! 🔥') : (state.lang==='ar'?'كمّل المحاضرات المتبقية!':'Finish remaining!');
+    const vEl = document.getElementById('stat-views');
+    if (vEl) vEl.textContent = finished;
+    const hEl = document.getElementById('stat-hw');
+    if (hEl) hEl.textContent = hwDone;
 
-            const el2 = document.getElementById('chartHW');
-            if (el2) state.chartInstances.hw = new Chart(el2, { type: 'doughnut', data: { labels: [i18n[state.lang].chartSub || 'مسلّمة', i18n[state.lang].chartUnsub || 'معلقة'], datasets: [{ data: [doneHW||0.01, pendingHW||0.01], backgroundColor: ['#6d28d9','#f59e0b'], borderWidth: 0 }] }, options: opts });
-            const m2 = document.getElementById('hw-motivation');
-            if (m2) m2.textContent = doneHW >= 2 ? (state.lang==='ar'?'واجباتك ممتازة 💪':'Great HW 💪') : (state.lang==='ar'?'سلّم المزيد من الواجبات':'Submit more HW');
+    // Simple chart if canvas exists
+    const canvas = document.getElementById('chartOverall');
+    if (canvas && typeof Chart !== 'undefined') {
+        if (state.chartInstances.overall) state.chartInstances.overall.destroy();
+        state.chartInstances.overall = new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: [state.lang === 'ar' ? 'مكتمل' : 'Done', state.lang === 'ar' ? 'متبقي' : 'Left'],
+                datasets: [{
+                    data: [finished, Math.max(0, totalLessons - finished)],
+                    backgroundColor: ['#6d28d9', 'rgba(148,163,184,0.3)'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+}
 
-            const el3 = document.getElementById('chartExams');
-            if (el3) state.chartInstances.ex = new Chart(el3, { type: 'doughnut', data: { labels: [state.lang==='ar'?'ناجح':'Passed', state.lang==='ar'?'لم يُختبر':'Pending'], datasets: [{ data: [passedEx||0.01, pendingEx||0.01], backgroundColor: ['#10b981','#64748b'], borderWidth: 0 }] }, options: opts });
-            const m3 = document.getElementById('exams-motivation');
-            if (m3) m3.textContent = passedEx > 0 ? (state.lang==='ar'?'شهاداتك بتزيد 🏆':'Certificates growing 🏆') : (state.lang==='ar'?'اختبر نفسك بعد الكورس':'Take exams after courses');
+// ==================== ACTIVITY ====================
+function addActivity(text) {
+    state.user.activity.unshift({ text, time: new Date().toLocaleTimeString() });
+    if (state.user.activity.length > 20) state.user.activity.pop();
+    renderActivity();
+}
 
-            const el4 = document.getElementById('chartOverall');
-            const pct = Math.round((finishedLec / totalPossibleLec) * 100);
-            if (el4) state.chartInstances.ov = new Chart(el4, { type: 'bar', data: { labels: [state.lang==='ar'?'محاضرات':'Lectures', state.lang==='ar'?'واجبات':'HW', state.lang==='ar'?'اختبارات':'Exams'], datasets: [{ data: [pct, doneHW*20, passedEx*50], backgroundColor: ['#10b981','#6d28d9','#f59e0b'], borderRadius: 8 }] }, options: { ...opts, scales: { y: { beginAtZero: true, max: 100, ticks: { color: textColor }, grid: { color: 'rgba(128,128,128,0.1)' } }, x: { ticks: { color: textColor }, grid: { display: false } } }, plugins: { legend: { display: false } } } });
-            const m4 = document.getElementById('overall-motivation');
-            if (m4) m4.textContent = pct >= 50 ? (state.lang==='ar'?'أداء رائع! استمر 🌟':'Great job! 🌟') : (state.lang==='ar'?'ابدأ أول خطوة... كل نجاح بيبدأ من فكرة':'Start today... every success starts with an idea');
-        }
+function renderActivity() {
+    const list = document.getElementById('activity-list');
+    if (!list) return;
+    if (state.user.activity.length === 0) {
+        list.innerHTML = `<p class="text-sm opacity-50 text-center py-4">${t('noActivity')}</p>`;
+        return;
+    }
+    list.innerHTML = state.user.activity.map(a => `
+        <div class="flex items-start gap-2 text-sm">
+            <i class="fas fa-circle text-[6px] mt-1.5 text-customPrimary"></i>
+            <div>
+                <p class="font-medium">${a.text}</p>
+                <p class="text-xs opacity-50">${a.time}</p>
+            </div>
+        </div>
+    `).join('');
+}
 
-        function joinCommunity() {
-            if(!state.user.isLoggedIn) return showToast('loginReq', true);
-            if (state.user.joinedCommunity) return showToast(state.lang==='ar'?'أنت منضم بالفعل':'Already joined');
-            state.user.joinedCommunity = true;
-            const btn = document.getElementById('join-comm-btn');
-            btn.innerText = state.lang === 'ar' ? 'تم الانضمام' : 'Joined';
-            btn.classList.replace('bg-customPrimary', 'bg-green-500');
-            showToast(state.lang === 'ar' ? 'أهلاً بك في المجتمع!' : 'Welcome to Community!');
-            updateCommunityLock();
-        }
-        function updateCommunityLock() {
-            const locked = !state.user.joinedCommunity;
-            document.querySelectorAll('.comments-section').forEach(el => {
-                if (locked) el.classList.add('community-locked');
-                else el.classList.remove('community-locked');
-            });
-            document.querySelectorAll('.like-btn').forEach(btn => {
-                btn.style.pointerEvents = locked ? 'none' : 'auto';
-                btn.style.opacity = locked ? '0.5' : '1';
-            });
-        }
-        function toggleLike(btn) {
-            if (!state.user.joinedCommunity) return showToast(state.lang==='ar'?'يجب الانضمام للمجتمع أولاً!':'Must join first!', true);
-            if (!state.user.isLoggedIn) return showToast('loginReq', true);
-            const liked = btn.dataset.liked === 'true';
-            const countEl = btn.querySelector('.like-count');
-            let count = parseInt(countEl.textContent);
-            if (liked) { btn.dataset.liked = 'false'; btn.querySelector('i').className = 'far fa-heart'; countEl.textContent = count - 1; }
-            else { btn.dataset.liked = 'true'; btn.querySelector('i').className = 'fas fa-heart text-red-500'; countEl.textContent = count + 1; }
-        }
-        function toggleComments(btn) {
-            if (!state.user.joinedCommunity) return showToast(state.lang==='ar'?'يجب الانضمام للمجتمع أولاً!':'Must join first!', true);
-            btn.closest('.bg-customCard').querySelector('.comments-section').classList.toggle('hidden');
-        }
-        function submitPost() {
-            if (!state.user.isLoggedIn) return showToast('loginReq', true);
-            if (!state.user.joinedCommunity) return showToast(state.lang==='ar'?'يجب الانضمام للمجتمع أولاً!':'Must join first!', true);
-            const ta = document.getElementById('post-textarea');
-            if (!ta || !ta.value.trim()) return;
-            showToast(state.lang==='ar'?'تم نشر منشورك!':'Post published!');
-            ta.value = '';
-        }
+// ==================== CUSTOMIZER ====================
+function openCustomizer() {
+    openModal('customizer-modal');
+}
+
+function setPrimaryColor(color) {
+    document.documentElement.style.setProperty('--primary-color', color);
+    localStorage.setItem('fikra-primary', color);
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+    event?.target?.classList.add('active');
+}
+
+function toggleDarkMode() {
+    document.documentElement.classList.toggle('dark');
+    const isDark = document.documentElement.classList.contains('dark');
+    localStorage.setItem('fikra-theme', isDark ? 'dark' : 'light');
+    updateThemeToggleUI();
+}
+
+function updateThemeToggleUI() {
+    const btn = document.getElementById('theme-toggle-btn');
+    if (!btn) return;
+    const isDark = document.documentElement.classList.contains('dark');
+    if (isDark) {
+        btn.innerHTML = '<i class="fas fa-sun me-1"></i> <span>' + (state.lang==='ar'?'الوضع الفاتح':'Light Mode') + '</span>';
+    } else {
+        btn.innerHTML = '<i class="fas fa-moon me-1"></i> <span>' + (state.lang==='ar'?'الوضع الداكن':'Dark Mode') + '</span>';
+    }
+}
+
+// Expose some functions for HTML onclick
+
+// ==================== LIBRARY (BOOKS) ====================
+function renderLibrary() {
+    const grid = document.getElementById('library-grid');
+    const empty = document.getElementById('library-empty');
+    const addPanel = document.getElementById('library-add-panel');
+    if (!grid) return;
+
+    if (state.user.role === 'teacher' && addPanel) {
+        addPanel.classList.remove('hidden');
+    } else if (addPanel) {
+        addPanel.classList.add('hidden');
+    }
+
+    let books = db.books.slice();
+    // Students only see books matching their level/year (and faculty if univ)
+    if (state.user.role === 'student' && state.user.level) {
+        books = books.filter(b => {
+            if (b.level !== state.user.level) return false;
+            if (b.year && state.user.year && String(b.year) !== String(state.user.year)) return false;
+            if (b.level === 'univ' && b.faculty && state.user.faculty && b.faculty !== state.user.faculty) return false;
+            return true;
+        });
+    }
+
+    if (books.length === 0) {
+        grid.innerHTML = '';
+        if (empty) empty.classList.remove('hidden');
+        return;
+    }
+    if (empty) empty.classList.add('hidden');
+
+    grid.innerHTML = books.map(b => {
+        const owned = (state.user.ownedBooks || []).includes(b.id) || state.user.role === 'teacher';
+        const facLabel = b.faculty ? ' • ' + getFacultyName(b.faculty) : '';
+        return `
+        <div class="bg-customCard p-5 rounded-2xl border border-slate-200/20 shadow-sm flex flex-col gap-3">
+            <div class="flex items-start gap-3">
+                <div class="w-12 h-12 rounded-xl bg-red-500/15 text-red-500 flex items-center justify-center text-xl shrink-0">
+                    <i class="fas fa-file-pdf"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="font-bold text-base truncate">${b.title}</h3>
+                    <p class="text-xs opacity-60 mt-0.5">${b.level} / ${state.lang==='ar'?'سنة':'Y'} ${b.year}${facLabel}</p>
+                </div>
+            </div>
+            <div class="flex items-center justify-between mt-auto pt-2 border-t border-slate-200/10">
+                <span class="font-black text-customPrimary">${b.price} EGP</span>
+                ${owned
+                    ? `<button onclick="downloadBook('${b.id}')" class="px-4 py-2 rounded-xl bg-green-500/15 text-green-600 dark:text-green-400 font-bold text-sm"><i class="fas fa-download me-1"></i>${state.lang==='ar'?'تحميل':'Download'}</button>`
+                    : `<button onclick="buyBook('${b.id}',${b.price})" class="px-4 py-2 rounded-xl bg-customPrimary text-white font-bold text-sm">${state.lang==='ar'?'شراء':'Buy'}</button>`
+                }
+                ${state.user.role === 'teacher' ? `<button onclick="deleteBook('${b.id}')" class="text-red-400 hover:text-red-500 p-2"><i class="fas fa-trash"></i></button>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function buyBook(id, price) {
+    if (state.user.wallet < price) return showToast(state.lang === 'ar' ? 'الرصيد غير كافٍ' : 'Insufficient balance', true);
+    state.user.wallet -= price;
+    if (!state.user.ownedBooks) state.user.ownedBooks = [];
+    state.user.ownedBooks.push(id);
+    updateWalletUI();
+    renderLibrary();
+    addActivity((state.lang==='ar'?'شراء كتاب: ':'Bought book: ') + (db.books.find(b=>b.id===id)?.title || id));
+    showToast(state.lang === 'ar' ? 'تم الشراء! يمكنك التحميل الآن' : 'Purchased! You can download now');
+    saveToStorage();
+}
+
+function downloadBook(id) {
+    const b = db.books.find(x => x.id === id);
+    showToast(state.lang === 'ar' ? `تحميل: ${b?.title || id} (تجريبي)` : `Download: ${b?.title || id} (demo)`);
+}
+
+function deleteBook(id) {
+    if (!confirm(state.lang === 'ar' ? 'حذف الكتاب؟' : 'Delete book?')) return;
+    db.books = db.books.filter(b => b.id !== id);
+    renderLibrary();
+    showToast(state.lang === 'ar' ? 'تم الحذف' : 'Deleted');
+    saveToStorage();
+}
+
+function addLibraryBook() {
+    const title = document.getElementById('lib-title')?.value.trim();
+    const level = document.getElementById('lib-level')?.value;
+    const year = document.getElementById('lib-year')?.value;
+    const faculty = document.getElementById('lib-faculty')?.value || '';
+    const price = parseInt(document.getElementById('lib-price')?.value || '20', 10);
+    const fileInput = document.getElementById('lib-file');
+
+    if (!title) return showToast(state.lang === 'ar' ? 'أدخل اسم المادة/الكتاب' : 'Enter book title', true);
+    if (isNaN(price) || price < 0) return showToast(state.lang === 'ar' ? 'سعر غير صحيح' : 'Invalid price', true);
+
+    const fileName = fileInput?.files?.[0]?.name || (title.replace(/\s+/g, '_') + '.pdf');
+
+    db.books.unshift({
+        id: 'b_' + Date.now(),
+        title,
+        level,
+        year,
+        faculty: level === 'univ' ? faculty : '',
+        price,
+        fileName,
+        addedBy: state.user.name
+    });
+
+    document.getElementById('lib-title').value = '';
+    if (fileInput) fileInput.value = '';
+    renderLibrary();
+    addActivity((state.lang==='ar'?'إضافة كتاب: ':'Added book: ') + title);
+    showToast(state.lang === 'ar' ? 'تم إضافة الكتاب' : 'Book added');
+    saveToStorage();
+}
+
+function updateLibFormFields() {
+    const level = document.getElementById('lib-level')?.value || 'high';
+    const facWrap = document.getElementById('lib-faculty-wrap');
+    const yearSel = document.getElementById('lib-year');
+    if (facWrap) facWrap.classList.toggle('hidden', level !== 'univ');
+    if (!yearSel) return;
+    let maxY = level === 'univ' ? 4 : 3;
+    if (level === 'univ') {
+        const fid = document.getElementById('lib-faculty')?.value;
+        const fac = FACULTIES.find(f => f.id === fid);
+        if (fac) maxY = fac.years;
+    }
+    yearSel.innerHTML = '';
+    for (let i = 1; i <= maxY; i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = (state.lang === 'ar' ? 'سنة ' : 'Year ') + i;
+        yearSel.appendChild(opt);
+    }
+}
+
+function populateLibFaculties() {
+    const sel = document.getElementById('lib-faculty');
+    if (!sel) return;
+    sel.innerHTML = FACULTIES.map(f =>
+        `<option value="${f.id}">${state.lang === 'ar' ? f.nameAr : f.nameEn}</option>`
+    ).join('');
+}
+
+window.renderLibrary = renderLibrary;
+window.buyBook = buyBook;
+window.downloadBook = downloadBook;
+window.deleteBook = deleteBook;
+window.addLibraryBook = addLibraryBook;
+window.updateLibFormFields = updateLibFormFields;
+window.populateLibFaculties = populateLibFaculties;
+
+// ==================== MESSAGING (DM) ====================
+let activeDmStudentId = null;
+
+function renderDMStudents() {
+    const list = document.getElementById('dm-students-list');
+    if (!list) return;
+    const students = db.students || [];
+    if (students.length === 0) {
+        list.innerHTML = `<p class="text-center opacity-50 text-sm py-8">${state.lang==='ar'?'لا يوجد طلاب':'No students yet'}</p>`;
+        return;
+    }
+    list.innerHTML = students.map(s => `
+        <button onclick="openDM('${s.id}')" class="w-full text-start px-3 py-3 hover:bg-black/5 dark:hover:bg-white/5 border-b border-slate-200/10 flex items-center gap-3 ${activeDmStudentId===s.id?'bg-customPrimary/10':''}">
+            <div class="w-9 h-9 rounded-full bg-customPrimary/20 text-customPrimary flex items-center justify-center font-bold text-sm shrink-0">${(s.name||'?')[0]}</div>
+            <div class="min-w-0 flex-1">
+                <p class="font-bold text-sm truncate">${s.name}</p>
+                <p class="text-xs opacity-50 truncate">${levelLabel(s.level)} • ${state.lang==='ar'?'سنة':'Y'} ${s.year||'-'}</p>
+            </div>
+        </button>
+    `).join('');
+}
+
+function openDM(studentId) {
+    activeDmStudentId = studentId;
+    const s = db.students.find(x => x.id === studentId);
+    const nameEl = document.getElementById('dm-active-name');
+    if (nameEl) nameEl.textContent = s ? s.name : '';
+    const input = document.getElementById('dm-input');
+    const btn = document.getElementById('dm-send-btn');
+    if (input) { input.disabled = false; input.placeholder = state.lang==='ar'?'اكتب رسالة...':'Type a message...'; }
+    if (btn) { btn.disabled = false; }
+    renderDMStudents();
+    renderDMChat();
+}
+
+function renderDMChat() {
+    const area = document.getElementById('dm-chat-area');
+    if (!area || !activeDmStudentId) return;
+    const msgs = (db.messages[activeDmStudentId] || []);
+    if (msgs.length === 0) {
+        area.innerHTML = `<p class="text-center opacity-40 text-sm py-8">${state.lang==='ar'?'ابدأ المحادثة':'Start the conversation'}</p>`;
+        return;
+    }
+    area.innerHTML = msgs.map(m => `
+        <div class="flex ${m.from==='teacher'?'justify-start':'justify-end'}">
+            <div class="max-w-[75%] px-4 py-2 rounded-2xl text-sm ${m.from==='teacher'?'bg-customPrimary/15 text-customText':'bg-customPrimary text-white'}">
+                ${m.text}
+                <p class="text-[10px] opacity-50 mt-1">${m.time}</p>
+            </div>
+        </div>
+    `).join('');
+    area.scrollTop = area.scrollHeight;
+}
+
+function sendDM() {
+    const input = document.getElementById('dm-input');
+    if (!input || !input.value.trim() || !activeDmStudentId) return;
+    if (!db.messages[activeDmStudentId]) db.messages[activeDmStudentId] = [];
+    db.messages[activeDmStudentId].push({
+        from: state.user.role === 'teacher' ? 'teacher' : 'student',
+        text: input.value.trim(),
+        time: new Date().toLocaleTimeString()
+    });
+    input.value = '';
+    saveToStorage();
+    renderDMChat();
+}
+
+window.setActiveCommunity = setActiveCommunity;
+window.createCommunity = createCommunity;
+window.renderDMStudents = renderDMStudents;
+window.openDM = openDM;
+window.sendDM = sendDM;
+window.toggleLanguage = toggleLanguage;
+window.cycleMotivation = cycleMotivation;
+window.switchView = switchView;
+window.goToDashboard = goToDashboard;
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.toggleMobileSidebar = toggleMobileSidebar;
+window.closeMobileSidebar = closeMobileSidebar;
+window.toggleSidebarCollapse = toggleSidebarCollapse;
+window.toggleUserMenu = toggleUserMenu;
+window.closeUserMenu = closeUserMenu;
+window.openRegister = openRegister;
+window.performAuth = performAuth;
+window.performLogout = performLogout;
+window.testCharge = testCharge;
+window.openPayment = openPayment;
+window.confirmPayment = confirmPayment;
+window.buyCourse = buyCourse;
+window.openCourse = openCourse;
+window.startLec = startLec;
+window.backToCourseDetails = backToCourseDetails;
+window.switchLectureTab = switchLectureTab;
+window.nextLecture = nextLecture;
+window.finishLecture = finishLecture;
+window.startHWSolve = startHWSolve;
+window.selectHWOption = selectHWOption;
+window.hwPrevQ = hwPrevQ;
+window.hwNextQ = hwNextQ;
+window.builderAddLesson = builderAddLesson;
+window.builderToggleLesson = builderToggleLesson;
+window.builderRemoveLesson = builderRemoveLesson;
+window.builderAddQuestion = builderAddQuestion;
+window.renderBuilderLessons = renderBuilderLessons;
+window.onBuilderImageChange = onBuilderImageChange;
+window.saveAndPublishCourse = saveAndPublishCourse;
+window.startNewCourse = startNewCourse;
+window.editCourse = editCourse;
+window.joinCommunity = joinCommunity;
+window.postToCommunity = postToCommunity;
+window.openCustomizer = openCustomizer;
+window.setPrimaryColor = setPrimaryColor;
+window.toggleDarkMode = toggleDarkMode;
+window.updateRegFormFields = updateRegFormFields;
+window.clearNavActive = clearNavActive;
+window.setStudentFilter = setStudentFilter;
+window.populateFaculties = populateFaculties;
+window.updateRegFormFields = updateRegFormFields;
